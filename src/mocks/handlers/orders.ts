@@ -3,6 +3,7 @@ import { createOrderRequestSchema } from '@/api/contracts'
 import { IDEMPOTENCY_HEADER } from '@/api/http'
 import { assertAvailable, findEdition, findNft, quoteStillValid } from '../commerce'
 import { db, saveDb, type OrderRecord } from '../db'
+import { publishNftUpdate } from '../nft-updates'
 import { scheduleSettlement, settleIfDue, toOrder } from '../orders'
 import { DEFAULT_SETTLEMENT, getScenario } from '../scenarios'
 import { errorResponse, parseBody, requireUser, withScenario } from '../utils'
@@ -91,6 +92,7 @@ export const orderHandlers = [
       }
       db().orders[order.id] = order
       saveDb()
+      for (const line of lines) publishNftUpdate(line.nftId)
       scheduleSettlement(order)
       return HttpResponse.json(toOrder(order), { status: 201 })
     }),

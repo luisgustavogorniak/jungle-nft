@@ -6,6 +6,7 @@ import { hasTabBar } from '@/components/layout/tab-bar-visibility'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
 import { Container } from '@/components/layout/container'
+import { LiveAnnouncer } from '@/components/live-announcer'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { useSession } from '@/features/auth/session'
@@ -54,6 +55,7 @@ function RootLayout() {
       <SiteFooter />
       <MobileTabBar />
       <Toaster />
+      <LiveAnnouncer />
     </>
   )
 }

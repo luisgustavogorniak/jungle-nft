@@ -11,7 +11,7 @@ export const realtime = ws.link(window.location.origin.replace(/^http/, 'ws'))
 // Sending the raw Engine.IO ping packet ("2") keeps it alive.
 const HEARTBEAT_MS = 20_000
 
-type Connection = { userId: string | null; io: ReturnType<typeof toSocketIo> }
+type Connection = { userId: string | null; io: ReturnType<typeof toSocketIo>; close: () => void }
 const connections = new Set<Connection>()
 
 /**
@@ -42,9 +42,20 @@ export function broadcast(event: string, payload: unknown) {
   for (const connection of connections) connection.io.client.emit(event, payload)
 }
 
+/**
+ * Simulates a dropped connection (mock control). Connections leave the set
+ * first, so a change made right after is not delivered until the client
+ * reconnects and reconciles with REST.
+ */
+export function dropConnections() {
+  const dropped = [...connections]
+  connections.clear()
+  for (const connection of dropped) connection.close()
+}
+
 export const realtimeHandlers = [
   realtime.addEventListener('connection', (connection) => {
-    const entry: Connection = { userId: null, io: toSocketIo(connection) }
+    const entry: Connection = { userId: null, io: toSocketIo(connection), close: () => connection.client.close() }
     connections.add(entry)
 
     connection.client.addEventListener('message', (event) => {

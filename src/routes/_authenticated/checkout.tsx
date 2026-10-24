@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { walletsApi } from '@/api/commerce'
-import { networkIds, walletProviders, type NetworkId, type WalletProvider } from '@/api/contracts'
+import { networkIds, walletProviders, type NetworkId, type Quote, type WalletProvider } from '@/api/contracts'
 import { isApiError } from '@/api/http'
 import { TextField } from '@/components/text-field'
 import { Button } from '@/components/ui/button'
 import { OrderSummary } from '@/features/cart/order-summary'
 import { cartKeys, useCartQuote } from '@/features/cart/queries'
 import { idempotencyKeyFor, useCreateOrder } from '@/features/orders/queries'
+import { compareEth, formatEth } from '@/lib/eth'
 import { errorMessage } from '@/lib/form-errors'
 
 export const Route = createFileRoute('/_authenticated/checkout')({
@@ -20,6 +21,26 @@ const providerLabels: Record<WalletProvider, string> = {
   metamask: 'MetaMask',
   walletconnect: 'WalletConnect',
   coinbase: 'Coinbase Wallet',
+}
+
+/** Same lines, prices and totals. Every quote request gets a new id, so ids are not compared. */
+function sameQuote(a: Quote, b: Quote): boolean {
+  return (
+    compareEth(a.total, b.total) === 0 &&
+    compareEth(a.discount, b.discount) === 0 &&
+    compareEth(a.networkFee, b.networkFee) === 0 &&
+    a.issues.length === b.issues.length &&
+    a.lines.length === b.lines.length &&
+    a.lines.every((line, index) => {
+      const other = b.lines[index]
+      return (
+        line.nftId === other.nftId &&
+        line.editionId === other.editionId &&
+        line.quantity === other.quantity &&
+        compareEth(line.unitPrice, other.unitPrice) === 0
+      )
+    })
+  )
 }
 
 // Thin slice: minimal checkout. Full validation, review step, wallet simulation
@@ -42,9 +63,17 @@ function CheckoutPage() {
 
   const selectedWallet = wallets.data?.find((wallet) => wallet.id === walletId) ?? null
 
+  // The quote the user has seen. A newer quote with different values (e.g. after
+  // `nft.updated`) blocks the purchase until the user accepts it; a quote being
+  // re-requested or with availability issues blocks it too.
+  const [reviewedQuote, setReviewedQuote] = useState<Quote | null>(null)
+  if (quote.data && !reviewedQuote) setReviewedQuote(quote.data)
+  const quoteChanged = Boolean(quote.data && reviewedQuote && !sameQuote(quote.data, reviewedQuote))
+  const blocked = quoteChanged || quote.isFetching || (quote.data?.issues.length ?? 0) > 0
+
   const onSubmit = (event: React.FormEvent) => {
     event.preventDefault()
-    if (!quote.data || !selectedWallet || createOrder.isPending) return
+    if (!quote.data || !selectedWallet || createOrder.isPending || blocked) return
     setError(null)
     createOrder.mutate(
       {
@@ -142,9 +171,25 @@ function CheckoutPage() {
           <OrderSummary quote={quote.data} />
         </section>
 
+        {quote.data.issues.map((issue) => (
+          <p key={`${issue.nftId}-${issue.editionId}`} role="alert">
+            {issue.message}
+          </p>
+        ))}
+        {quoteChanged && reviewedQuote && (
+          <div role="alert" className="grid gap-3 rounded-md border border-highlight p-4">
+            <p>
+              Os valores mudaram desde a sua revisão. Total anterior: {formatEth(reviewedQuote.total)}. Novo total:{' '}
+              {formatEth(quote.data.total)}.
+            </p>
+            <Button type="button" variant="outline" disabled={quote.isFetching} onClick={() => setReviewedQuote(quote.data)}>
+              Aceitar novo valor
+            </Button>
+          </div>
+        )}
         {error && <p role="alert">{error}</p>}
-        <Button type="submit" disabled={!selectedWallet || createOrder.isPending}>
-          {createOrder.isPending ? 'Enviando pedido…' : 'Confirmar compra'}
+        <Button type="submit" disabled={!selectedWallet || createOrder.isPending || blocked}>
+          {createOrder.isPending ? 'Enviando pedido…' : quote.isFetching ? 'Atualizando valores…' : 'Confirmar compra'}
         </Button>
       </form>
     </main>

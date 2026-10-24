@@ -6,6 +6,7 @@ import type { Order, OrderUpdatedEvent } from '@/api/contracts'
 import { findEdition, findNft, getCartRecord, setCartItems } from './commerce'
 import { db, nextEventId, saveDb, type OrderRecord } from './db'
 import { resolveNftImage } from './images'
+import { publishNftUpdate } from './nft-updates'
 import { emitToUser } from './realtime'
 
 const timers = new Map<string, ReturnType<typeof setTimeout>>()
@@ -56,6 +57,7 @@ function settle(orderId: string) {
       const edition = nft && findEdition(nft, line.editionId)
       if (edition) edition.available += line.quantity
     }
+    for (const line of order.lines) publishNftUpdate(line.nftId)
   }
 
   const event: OrderUpdatedEvent = {

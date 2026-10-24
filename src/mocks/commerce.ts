@@ -41,6 +41,7 @@ export function toCart(ownerKey: string): Cart {
         editionLabel: edition.label,
         unitPrice: nft.price,
         available: edition.available,
+        nftVersion: nft.version,
       },
     ]
   })

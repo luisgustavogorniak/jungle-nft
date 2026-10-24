@@ -94,15 +94,23 @@ Limitations:
 
 ### Authentication and scoping
 
-The client passes `auth: (cb) => cb({ token: getToken() })`, so every (re)connection sends the current token in the Socket.IO CONNECT packet (`40{"token":"..."}`). The mock reads that packet, resolves the session and stores the `userId` on the connection. `emitToUser(userId, …)` delivers private events (`order.updated`) only to that user's connections, while `broadcast` sends public ones (catalog changes). The client connects only when a user is logged in (`useRealtime`) and disconnects on logout or user change, releasing its listeners.
+The client passes `auth: (cb) => cb({ token: getToken() })`, so every (re)connection sends the current token in the Socket.IO CONNECT packet (`40{"token":"..."}`). The mock reads that packet, resolves the session and stores the `userId` on the connection. `emitToUser(userId, …)` delivers private events (`order.updated`) only to that user's connections, while `broadcast` sends public ones (`nft.updated`). Visitors connect too (without a token), because they also have a cart and see the catalog. When the user changes (login, logout, expiration), `useRealtime` removes its listeners, disconnects and opens a new connection with the new token, so a previous session's private events can never reach the next user. The listeners are also released when the root unmounts.
 
 ### Client handling
 
 `src/realtime/events.ts` validates every event against the contract, ignores already seen `eventId`s and ignores events whose `version` is not newer than the cached resource. A confirmed `order.updated` also invalidates cart and quote, because the server removed the purchased items.
 
+`nft.updated` carries `{ price, oldPrice, editions: [{ id, available }] }` and the NFT `version`. Every REST representation of an NFT carries the same version: `Nft.version` in list and detail, and `CartItem.nftVersion` in the cart. The client compares the event with the highest version found in any of those caches, so after a REST reconciliation a late event that is older than the fetched state is still discarded. A newer event patches detail and list caches in place (`setQueriesData`). If the NFT is in the cart, the cart line is patched, a notice is announced and cart and quote are re-read: totals keep coming only from the API.
+
+The mock bumps the version and broadcasts `nft.updated` on every catalog change: the `updateNft` control, the `price-change` scenario, units reserved by an order and units released by a declined payment. REST and events therefore always describe the same state.
+
+**Notice.** `LiveAnnouncer` (root layout) is a `role="status"` / `aria-live="polite"` region that is always mounted, so screen readers announce text inserted later. It is also the visible notice (with a close button). Toasts are not used for this because sonner has its own live region and the message would be read twice.
+
+**Stale quote on checkout.** The checkout keeps the quote the user reviewed. A new quote with different content (lines, unit prices, quantities, totals) shows the previous and the new total in an alert and disables "Confirmar compra" until "Aceitar novo valor". Quotes are compared by content, not by id, because every quote request returns a new id. The purchase is also blocked while the quote is being re-requested and while it has availability issues. The server still answers `409 QUOTE_CHANGED` as the last barrier.
+
 ### Reconciliation with REST
 
-On every `connect` (first connection, reconnection, and after a reload), active `['orders', …]` queries are invalidated and refetched from REST, so events missed while disconnected are recovered. The order page always reads `GET /api/orders/:id` on mount (`staleTime: 0`), and the events then keep the same cache entry up to date. There is no polling.
+On every `connect`, active `['orders', …]` queries are invalidated and refetched from REST. On a reconnection (any `connect` after the first one of that socket session), catalog, cart and quote are invalidated as well, so changes missed while disconnected are recovered. On the first connection the pages have just fetched their data, so only orders are re-read (a payment can settle between the fetch and the connection). Re-reading everything there would cancel and repeat the requests in flight on every page load. Known gap: a catalog event sent in the few milliseconds between the first fetch and the first connection is lost until the next fetch. The order page always reads `GET /api/orders/:id` on mount (`staleTime: 0`), and the events then keep the same cache entry up to date. There is no polling.
 
 ## Orders
 
@@ -159,3 +167,11 @@ The cart lives on the (mock) server, keyed by owner: `user:<id>` when authentica
 - **Totais** continuam vindo só da cotação; enquanto uma nova carrega, os valores anteriores ficam esmaecidos (`aria-busy`) e "Conectar e finalizar" fica desabilitado. Itens com problema de estoque aparecem na linha e bloqueiam a finalização.
 - **Visitante:** `guestId` já identificava o carrinho; o merge no login e a persistência no refresh têm teste E2E.
 - **Desvios do Figma:** lixeira na linha do nome no mobile (no frame ela sobrepõe o "+", como apontado nos comentários); tab bar escondida em carrinho/detalhe (o frame não a desenha); coluna "Edições" mostra o stepper e a edição vai sob o nome; steppers iguais nas duas larguras exceto o tamanho.
+
+## E6: tempo real completo
+- **Socket para visitante também:** `nft.updated` é público e o visitante tem carrinho. A troca de usuário abre uma conexão nova com o token novo, o que mantém o escopo dos eventos privados.
+- **Versão em todo REST de NFT** (`Nft.version`, `CartItem.nftVersion`): o descarte de evento antigo funciona mesmo depois de uma reconciliação.
+- **Reconciliação** em toda reconexão (catálogo, carrinho, cotação, pedidos). Na primeira conexão, só pedidos.
+- **Aviso** em uma região `aria-live` sempre montada, que também é o aviso visível. Sem toast, para não ser lido duas vezes.
+- **Checkout** compara a cotação por conteúdo e exige "Aceitar novo valor". O servidor mantém o `QUOTE_CHANGED`.
+- **Mock:** `updateNft`, `dropConnections` e o cenário `price-change`. Reserva e liberação de unidades por pedido também emitem `nft.updated`.

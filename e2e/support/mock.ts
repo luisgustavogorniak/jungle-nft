@@ -5,7 +5,11 @@ type MockControls = {
   setScenario: (name: string) => void
   getScenario: () => string
   expireSessions: () => void
+  updateNft: (nftId: string, changes: NftChanges) => void
+  dropConnections: () => void
 }
+
+type NftChanges = { price?: string; editions?: { id: string; available: number }[] }
 
 export const users = {
   nova: { email: 'nova@kurio.test', password: 'Kurio@2026', displayName: 'Nova Sato' },
@@ -20,9 +24,9 @@ export async function openFresh(page: Page, path: string, scenario = 'default') 
   await page.goto(`${url.pathname}${url.search}`)
 }
 
-export async function mockControls(page: Page, action: keyof MockControls) {
+export async function mockControls(page: Page, action: 'reset' | 'expireSessions') {
   await page.evaluate(
-    (name) => (window as unknown as { __kurioMock: MockControls }).__kurioMock[name](''),
+    (name) => (window as unknown as { __kurioMock: MockControls }).__kurioMock[name](),
     action,
   )
 }
@@ -91,4 +95,24 @@ export async function withFilters(page: Page, actions: (scope: Awaited<ReturnTyp
 export async function selectEdition(page: Page, label: string) {
   await page.locator('label', { hasText: label }).click()
   await expect(page.getByRole('radio', { name: new RegExp('^' + label.replace('/', '[/]') + ' ') })).toBeChecked()
+}
+
+/** Changes an NFT in the mock backend, which broadcasts `nft.updated` through the socket. */
+export async function updateNft(page: Page, nftId: string, changes: NftChanges) {
+  await page.evaluate(
+    ([id, value]) => (window as unknown as { __kurioMock: MockControls }).__kurioMock.updateNft(id, value),
+    [nftId, changes] as const,
+  )
+}
+
+/** Drops the socket and changes the NFT while the client is offline, so no event is delivered. */
+export async function updateNftWhileDisconnected(page: Page, nftId: string, changes: NftChanges) {
+  await page.evaluate(
+    ([id, value]) => {
+      const mock = (window as unknown as { __kurioMock: MockControls }).__kurioMock
+      mock.dropConnections()
+      mock.updateNft(id, value)
+    },
+    [nftId, changes] as const,
+  )
 }

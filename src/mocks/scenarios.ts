@@ -30,6 +30,8 @@ export type Scenario = {
   emptyCatalog?: boolean
   /** How long a payment stays pending and how it ends. Default: confirmed after 2s. */
   settlement?: { delayMs: number; outcome: 'confirmed' | 'declined' }
+  /** After the first quote of the page load, the first cart item gets `percent` more expensive. */
+  priceChange?: { delayMs: number; percent: number }
 }
 
 export const DEFAULT_SETTLEMENT = { delayMs: 2000, outcome: 'confirmed' } as const
@@ -48,6 +50,11 @@ export const scenarios = {
     description: 'Payments are declined by the simulated network after 2 seconds.',
     latency: { min: 150, max: 450 },
     settlement: { delayMs: 2000, outcome: 'declined' },
+  },
+  'price-change': {
+    description: 'Four seconds after the cart or checkout loads, the first cart item gets 10% more expensive (nft.updated).',
+    latency: { min: 150, max: 450 },
+    priceChange: { delayMs: 4000, percent: 10 },
   },
   slow: {
     description: 'Every response takes 2.5 to 3.5 seconds (skeletons and loading states).',

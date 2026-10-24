@@ -211,6 +211,7 @@ export const cartItemSchema = z.object({
   editionLabel: z.string(),
   unitPrice: ethAmount,
   available: z.number().int().nonnegative(),
+  nftVersion: z.number().int(), // lets realtime events older than this cart be ignored
 })
 export type CartItem = z.infer<typeof cartItemSchema>
 

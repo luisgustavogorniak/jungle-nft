@@ -4,6 +4,8 @@ import { cartItemInputSchema, cartItemQuantitySchema, editionIdSchema, quoteRequ
 import { assertAvailable, createQuote, getCartRecord, setCartItems, toCart } from '../commerce'
 import { OPEN_EDITION_LIMIT } from '../fixtures/nfts'
 import { saveDb } from '../db'
+import { schedulePriceChange } from '../nft-updates'
+import { getScenario } from '../scenarios'
 import { errorResponse, ownerKey, parseBody, withScenario } from '../utils'
 
 function parseRef(params: Record<string, string | readonly string[] | undefined>) {
@@ -77,6 +79,8 @@ export const cartHandlers = [
       const { couponCode } = await parseBody(request, quoteRequestSchema)
       const quote = createQuote(owner, couponCode)
       saveDb()
+      const priceChange = getScenario().priceChange
+      if (priceChange) schedulePriceChange(owner, priceChange.delayMs, priceChange.percent)
       return HttpResponse.json(quote)
     }),
   ),

@@ -1,7 +1,9 @@
 import { setupWorker } from 'msw/browser'
 import { initDb, resetDb } from './db'
 import { handlers } from './handlers'
+import { updateNft, type NftChanges } from './nft-updates'
 import { resumePendingOrders } from './orders'
+import { dropConnections } from './realtime'
 import { getScenarioName, setScenarioName } from './scenarios'
 import { expireAllSessions } from './utils'
 
@@ -15,6 +17,8 @@ declare global {
       setScenario: (name: string) => void
       getScenario: () => string
       expireSessions: () => void
+      updateNft: (nftId: string, changes: NftChanges) => void
+      dropConnections: () => void
     }
   }
 }
@@ -52,6 +56,8 @@ export async function startMocking() {
     setScenario: setScenarioName,
     getScenario: getScenarioName,
     expireSessions: expireAllSessions,
+    updateNft,
+    dropConnections,
   }
 
   await worker.start({ onUnhandledRequest: 'bypass', quiet: import.meta.env.PROD })
