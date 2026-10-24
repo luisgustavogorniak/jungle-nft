@@ -1,0 +1,441 @@
+{
+  "generatedAt": "2026-10-24T23:15:44.384Z",
+  "tools": {
+    "lighthouse": "13.5.0",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "playwright": "1.64.1",
+    "node": "v24.22.0",
+    "os": "Windows_NT 10.0.26300 (x64)",
+    "cpu": "Intel(R) Core(TM) i5-9400F CPU @ 2.90GHz × 6"
+  },
+  "conditions": {
+    "runsPerPage": 3,
+    "targets": {
+      "performance": 90,
+      "accessibility": 95,
+      "best-practices": 95,
+      "seo": 90
+    },
+    "throttlingMethod": "simulate",
+    "throttling": {
+      "mobile": {
+        "rttMs": 150,
+        "throughputKbps": 1638.4,
+        "requestLatencyMs": 562.5,
+        "downloadThroughputKbps": 1474.5600000000002,
+        "uploadThroughputKbps": 675,
+        "cpuSlowdownMultiplier": 4
+      },
+      "desktop": {
+        "rttMs": 40,
+        "throughputKbps": 10240,
+        "requestLatencyMs": 0,
+        "downloadThroughputKbps": 0,
+        "uploadThroughputKbps": 0,
+        "cpuSlowdownMultiplier": 1
+      }
+    },
+    "notes": [
+      "**Build:** production build (`npm run build`) served by `vite preview`, mocks enabled (`VITE_ENABLE_MOCKS`), `default` scenario (150–450 ms mock latency).",
+      "**Profiles:** `mobile` is Lighthouse’s default (emulated phone, simulated slow 4G, 4× CPU slowdown); `desktop` is Lighthouse’s desktop preset.",
+      "**Pages:** home and detail as a visitor with fresh mock data; cart and payment as Nova Sato, logged in, with one Emerald Ape #042 in the cart.",
+      "**Cold load:** the HTTP cache is cleared before every run. localStorage and the service worker are kept (they hold the session and the mock backend), so `disableStorageReset` is on.",
+      "**Browser:** headless Chromium from Playwright, driven over the remote debugging port. Run on a single local machine, so absolute timings vary between machines; the scores use Lighthouse’s simulated throttling, which is less sensitive to that.",
+      "**Kept report:** the HTML/JSON of each page and profile is the run with the median performance score."
+    ]
+  },
+  "results": [
+    {
+      "page": "home",
+      "url": "/",
+      "profile": "mobile",
+      "session": "guest",
+      "runs": [
+        {
+          "performance": 98,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 1983,
+          "cls": 0.002,
+          "tbt": 6
+        },
+        {
+          "performance": 98,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 1948,
+          "cls": 0.002,
+          "tbt": 5
+        },
+        {
+          "performance": 98,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 1944,
+          "cls": 0.002,
+          "tbt": 19
+        }
+      ],
+      "median": {
+        "performance": 98,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100,
+        "lcp": 1948,
+        "cls": 0.002,
+        "tbt": 6
+      },
+      "medianRun": 2,
+      "reports": {
+        "html": "home-mobile.html",
+        "json": "home-mobile.json"
+      }
+    },
+    {
+      "page": "home",
+      "url": "/",
+      "profile": "desktop",
+      "session": "guest",
+      "runs": [
+        {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 697,
+          "cls": 0.002,
+          "tbt": 12
+        },
+        {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 716,
+          "cls": 0.002,
+          "tbt": 13
+        },
+        {
+          "performance": 99,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 745,
+          "cls": 0.002,
+          "tbt": 14
+        }
+      ],
+      "median": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100,
+        "lcp": 716,
+        "cls": 0.002,
+        "tbt": 13
+      },
+      "medianRun": 1,
+      "reports": {
+        "html": "home-desktop.html",
+        "json": "home-desktop.json"
+      }
+    },
+    {
+      "page": "detail",
+      "url": "/nfts/emerald-ape-042",
+      "profile": "mobile",
+      "session": "guest",
+      "runs": [
+        {
+          "performance": 99,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 1983,
+          "cls": 0,
+          "tbt": 66
+        },
+        {
+          "performance": 99,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 1983,
+          "cls": 0,
+          "tbt": 69
+        },
+        {
+          "performance": 99,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 1972,
+          "cls": 0,
+          "tbt": 66
+        }
+      ],
+      "median": {
+        "performance": 99,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100,
+        "lcp": 1983,
+        "cls": 0,
+        "tbt": 66
+      },
+      "medianRun": 2,
+      "reports": {
+        "html": "detail-mobile.html",
+        "json": "detail-mobile.json"
+      }
+    },
+    {
+      "page": "detail",
+      "url": "/nfts/emerald-ape-042",
+      "profile": "desktop",
+      "session": "guest",
+      "runs": [
+        {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 628,
+          "cls": 0,
+          "tbt": 0
+        },
+        {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 608,
+          "cls": 0,
+          "tbt": 0
+        },
+        {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 597,
+          "cls": 0,
+          "tbt": 0
+        }
+      ],
+      "median": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100,
+        "lcp": 608,
+        "cls": 0,
+        "tbt": 0
+      },
+      "medianRun": 2,
+      "reports": {
+        "html": "detail-desktop.html",
+        "json": "detail-desktop.json"
+      }
+    },
+    {
+      "page": "cart",
+      "url": "/cart",
+      "profile": "mobile",
+      "session": "member",
+      "runs": [
+        {
+          "performance": 99,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 2014,
+          "cls": 0.003,
+          "tbt": 90
+        },
+        {
+          "performance": 99,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 2018,
+          "cls": 0.003,
+          "tbt": 80
+        },
+        {
+          "performance": 99,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 2020,
+          "cls": 0.003,
+          "tbt": 77
+        }
+      ],
+      "median": {
+        "performance": 99,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100,
+        "lcp": 2018,
+        "cls": 0.003,
+        "tbt": 80
+      },
+      "medianRun": 2,
+      "reports": {
+        "html": "cart-mobile.html",
+        "json": "cart-mobile.json"
+      }
+    },
+    {
+      "page": "cart",
+      "url": "/cart",
+      "profile": "desktop",
+      "session": "member",
+      "runs": [
+        {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 764,
+          "cls": 0.001,
+          "tbt": 0
+        },
+        {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 762,
+          "cls": 0.001,
+          "tbt": 0
+        },
+        {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 733,
+          "cls": 0.001,
+          "tbt": 0
+        }
+      ],
+      "median": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100,
+        "lcp": 762,
+        "cls": 0.001,
+        "tbt": 0
+      },
+      "medianRun": 2,
+      "reports": {
+        "html": "cart-desktop.html",
+        "json": "cart-desktop.json"
+      }
+    },
+    {
+      "page": "checkout",
+      "url": "/checkout",
+      "profile": "mobile",
+      "session": "member",
+      "runs": [
+        {
+          "performance": 98,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 2081,
+          "cls": 0,
+          "tbt": 93
+        },
+        {
+          "performance": 98,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 2100,
+          "cls": 0,
+          "tbt": 91
+        },
+        {
+          "performance": 98,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 2176,
+          "cls": 0,
+          "tbt": 93
+        }
+      ],
+      "median": {
+        "performance": 98,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100,
+        "lcp": 2100,
+        "cls": 0,
+        "tbt": 93
+      },
+      "medianRun": 2,
+      "reports": {
+        "html": "checkout-mobile.html",
+        "json": "checkout-mobile.json"
+      }
+    },
+    {
+      "page": "checkout",
+      "url": "/checkout",
+      "profile": "desktop",
+      "session": "member",
+      "runs": [
+        {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 810,
+          "cls": 0,
+          "tbt": 0
+        },
+        {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 820,
+          "cls": 0,
+          "tbt": 0
+        },
+        {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100,
+          "lcp": 808,
+          "cls": 0,
+          "tbt": 0
+        }
+      ],
+      "median": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100,
+        "lcp": 810,
+        "cls": 0,
+        "tbt": 0
+      },
+      "medianRun": 2,
+      "reports": {
+        "html": "checkout-desktop.html",
+        "json": "checkout-desktop.json"
+      }
+    }
+  ]
+}
