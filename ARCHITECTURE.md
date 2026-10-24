@@ -13,6 +13,45 @@
 | `src/components/ui/` | shadcn/ui components |
 | `e2e/` | Playwright tests |
 
+## Contracts
+
+`src/api/contracts.ts` holds Zod schemas for every REST resource and realtime event. TS types are inferred from them (`z.infer`), and both the app and the MSW handlers import them, so transport, state and UI share one definition.
+
+- **ETH amounts** are decimal strings (`"1.19"`) and are computed as `bigint` wei in `src/lib/eth.ts`. Floats never touch money. Quantities are integers.
+- **Errors** always use the same envelope, `{ error: { code, message, fieldErrors?, details? } }`. The code drives the UI, e.g. `VALIDATION_ERROR` 422, `UNAUTHENTICATED`/`SESSION_EXPIRED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `CONFLICT`/`AVAILABILITY_CONFLICT`/`QUOTE_CHANGED`/`IDEMPOTENCY_CONFLICT` 409, `COUPON_INVALID`/`COUPON_EXPIRED` 422, `SERVICE_UNAVAILABLE` 503.
+- **Events** carry `eventId` (dedupe), `resourceId` and a monotonic `version` per resource (stale events are ignored).
+- **Orders** are snapshots: lines, prices and totals are copied at creation.
+
+## HTTP client
+
+`src/api/http.ts` (Axios):
+
+- The request interceptor adds `Authorization: Bearer <token>` and `X-Guest-Id`. The guest id owns the visitor cart until it is merged on login.
+- The response interceptor turns every failure into an `ApiError`: API errors, `NETWORK_ERROR`, `TIMEOUT` and `CANCELED`. `isTransient` marks failures worth retrying.
+- When an authenticated request gets a 401, `onSessionExpired` listeners are notified.
+- The session token lives in `localStorage` (`kurio.token`), so the session survives refresh. Passwords never leave the login/register request, and the mock stores only salted SHA-256 hashes.
+
+## Mock backend
+
+| File | Role |
+| --- | --- |
+| `src/mocks/db.ts` | Backend state (catalog, users, sessions, carts, favorites, wallets, quotes, orders), persisted in `localStorage` (`kurio.mock.db`). `resetDb()` restores the seed. `SCHEMA_VERSION` discards stale persisted state. |
+| `src/mocks/fixtures/` | Deterministic seed: 36 NFTs (the first 9 reproduce the home grid of the layout), 2 users, wallets, favorites, coupons. |
+| `src/mocks/scenarios.ts` | Network scenarios: latency (seeded PRNG), out-of-order responses and failure injection per route. |
+| `src/mocks/utils.ts` | `withScenario` (latency + failures around a resolver), error envelope, auth helpers, serializers. |
+| `src/mocks/images.ts` | Maps an image file name to the bundled asset URL, with a placeholder fallback. |
+| `src/mocks/browser.ts` | Applies `?scenario` / `?mock-reset`, loads the DB and starts the worker. |
+
+The app never imports from `src/mocks/` besides the `startMocking()` call in `main.tsx`.
+
+### Fixture data consistency
+
+The layout uses different token IDs for the same NFT on different screens (Violet Nomad `#0009` vs `#0314`). In the mock, the token ID always comes from the number in the name (`Violet Nomad #314` → `#0314`), and every screen reads it from the same source.
+
+### Images
+
+The mock stores only the image file name (`emerald-ape.png`), never a URL. URLs are resolved per response through `import.meta.glob('/src/assets/nfts/*')`. Vite fingerprints asset URLs per build, so a persisted URL would go stale, and a persisted placeholder would hide images added later.
+
 ## Decisions
 
 ### MSW 2 instead of MSW 3

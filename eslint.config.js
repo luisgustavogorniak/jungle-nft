@@ -24,6 +24,13 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // `_name` marks values intentionally discarded (e.g. omitting fields via destructuring).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' },
+      ],
+    },
   },
   {
     // Route files export a `Route` object (HMR handled by the router plugin);

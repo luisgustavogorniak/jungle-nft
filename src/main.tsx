@@ -5,8 +5,8 @@ import './index.css'
 async function enableMocking() {
   if (import.meta.env.VITE_ENABLE_MOCKS !== 'true') return
   // Dynamic import keeps MSW out of the bundle when mocks are disabled.
-  const { worker } = await import('./mocks/browser')
-  await worker.start({ onUnhandledRequest: 'bypass' })
+  const { startMocking } = await import('./mocks/browser')
+  await startMocking()
 }
 
 // The app is imported only after MSW starts: engine.io-client captures
