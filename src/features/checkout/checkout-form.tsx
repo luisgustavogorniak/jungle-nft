@@ -448,7 +448,7 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
         <CheckoutLines quote={quote.data} items={items} />
         <p className="text-center text-sm">
           Tem um código promocional?{' '}
-          <Link to="/cart" className="text-highlight hover:underline">
+          <Link to="/cart" className="text-highlight underline underline-offset-2">
             Aplique aqui
           </Link>
         </p>
