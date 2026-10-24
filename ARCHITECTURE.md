@@ -1,232 +1,344 @@
-# Architecture
+# Arquitetura
 
-## Project layout
+Marketplace de NFTs (Kurio) feito para o desafio frontend da Jungle Gaming. Toda a API, a autenticação, as carteiras, os pagamentos e os eventos em tempo real são simulados com MSW, na camada de rede. Este documento explica como as peças se encaixam, as decisões tomadas, os limites do ambiente de mocks e os desvios do Figma.
 
-| Path | Responsibility |
+## Índice
+
+1. [Organização do projeto](#1-organização-do-projeto)
+2. [Contratos REST e eventos](#2-contratos-rest-e-eventos)
+3. [Cliente HTTP](#3-cliente-http)
+4. [Sessão](#4-sessão)
+5. [Cache e estado remoto](#5-cache-e-estado-remoto)
+6. [Catálogo, detalhe e favoritos](#6-catálogo-detalhe-e-favoritos)
+7. [Carrinho](#7-carrinho)
+8. [Checkout, pedidos e idempotência](#8-checkout-pedidos-e-idempotência)
+9. [Tempo real e reconciliação com REST](#9-tempo-real-e-reconciliação-com-rest)
+10. [Perfil e carteiras](#10-perfil-e-carteiras)
+11. [Mocks](#11-mocks)
+12. [Acessibilidade](#12-acessibilidade)
+13. [Testes](#13-testes)
+14. [Performance (Lighthouse)](#14-performance-lighthouse)
+15. [Decisões técnicas](#15-decisões-técnicas)
+16. [Desvios do Figma](#16-desvios-do-figma)
+17. [Limitações conhecidas](#17-limitações-conhecidas)
+
+## 1. Organização do projeto
+
+| Caminho | Responsabilidade |
 | --- | --- |
-| `src/main.tsx` | Starts MSW (when enabled), then lazy-loads the app |
-| `src/App.tsx` | QueryClient + Router providers |
-| `src/routes/` | File-based routes (TanStack Router plugin generates `routeTree.gen.ts`) |
-| `src/api/` | Axios client, REST contracts and typed endpoint functions |
-| `src/features/` | Feature logic: queries, mutations, forms (e.g. `features/auth`) |
-| `src/lib/` | Framework-agnostic helpers (ETH math, query client, form errors) |
-| `src/realtime/` | Socket.IO client |
-| `src/mocks/` | MSW handlers (REST and Socket.IO) |
-| `src/components/ui/` | shadcn/ui components |
-| `e2e/` | Playwright tests |
+| `src/main.tsx` | Inicia o MSW (quando habilitado) e só então carrega o app com `import()` |
+| `src/App.tsx` | Providers de QueryClient e Router; redirecionamento de sessão expirada |
+| `src/routes/` | Rotas baseadas em arquivos (o plugin do TanStack Router gera `routeTree.gen.ts`) |
+| `src/api/` | Cliente Axios, contratos REST (Zod) e funções tipadas por endpoint |
+| `src/features/` | Lógica por funcionalidade: queries, mutations, formulários |
+| `src/lib/` | Helpers sem dependência de framework (matemática de ETH, query client, erros de formulário, search params) |
+| `src/realtime/` | Cliente Socket.IO, tratamento de eventos e anúncios |
+| `src/mocks/` | Handlers MSW (REST e Socket.IO), banco em memória, cenários e fixtures |
+| `src/components/ui/` | Componentes shadcn/ui adaptados à identidade da Kurio |
+| `e2e/` | Testes Playwright (funcionais e regressão visual) |
+| `scripts/` | Auditoria Lighthouse e otimização de imagens |
 
-## Contracts
+Como cada tecnologia obrigatória participa:
 
-`src/api/contracts.ts` holds Zod schemas for every REST resource and realtime event. TS types are inferred from them (`z.infer`), and both the app and the MSW handlers import them, so transport, state and UI share one definition.
+| Tecnologia | Onde |
+| --- | --- |
+| TanStack Router | Rotas file-based, `beforeLoad` nas rotas privadas, search params validados do catálogo, modal de pedido como rota |
+| TanStack Query | Todas as consultas e mutations, cache por usuário e por parâmetros, atualização otimista, reconciliação |
+| Axios | Único caminho das chamadas REST (`src/api/http.ts`) |
+| Socket.IO | `socket.io-client` real, servidor simulado por MSW |
+| MSW | Toda a API e os eventos; nenhum componente, hook ou o cliente Axios tem resposta fictícia |
+| Tailwind + shadcn/ui | Estilo e componentes base, com os tokens do Figma |
+| Playwright | E2E em Chromium desktop e mobile, regressão visual, relatório HTML e trace em falha |
+| Lighthouse | `scripts/lighthouse.mjs`, 3 execuções por página e perfil |
 
-- **ETH amounts** are decimal strings (`"1.19"`) and are computed as `bigint` wei in `src/lib/eth.ts`. Floats never touch money. Quantities are integers.
-- **Errors** always use the same envelope, `{ error: { code, message, fieldErrors?, details? } }`. The code drives the UI, e.g. `VALIDATION_ERROR` 422, `UNAUTHENTICATED`/`SESSION_EXPIRED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `CONFLICT`/`AVAILABILITY_CONFLICT`/`QUOTE_CHANGED`/`IDEMPOTENCY_CONFLICT` 409, `COUPON_INVALID`/`COUPON_EXPIRED` 422, `SERVICE_UNAVAILABLE` 503.
-- **Events** carry `eventId` (dedupe), `resourceId` and a monotonic `version` per resource (stale events are ignored).
-- **Orders** are snapshots: lines, prices and totals are copied at creation.
+## 2. Contratos REST e eventos
 
-## HTTP client
+`src/api/contracts.ts` guarda os schemas Zod de todo recurso REST e de todo evento em tempo real. Os tipos TypeScript são inferidos deles (`z.infer`), e tanto o app quanto os handlers do MSW os importam: transporte, estado e interface compartilham uma única definição.
+
+- **Valores em ETH** são strings decimais (`"1.19"`) e todo cálculo usa `bigint` em wei (`src/lib/eth.ts`). Ponto flutuante nunca toca dinheiro. Quantidades são inteiras.
+- **Erros** usam sempre o mesmo envelope, `{ error: { code, message, fieldErrors?, details? } }`. O `code` dirige a interface: `VALIDATION_ERROR` 422, `UNAUTHENTICATED`/`SESSION_EXPIRED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `CONFLICT`/`AVAILABILITY_CONFLICT`/`QUOTE_CHANGED`/`IDEMPOTENCY_CONFLICT`/`WALLET_REJECTED` 409, `COUPON_INVALID`/`COUPON_EXPIRED` 422, `SERVICE_UNAVAILABLE` 503, `STORAGE_FULL` 507.
+- **Eventos** carregam `eventId` (deduplicação), `resourceId`, `type`, `occurredAt` e um `version` monotônico por recurso (eventos antigos são descartados).
+- **Pedidos** são snapshots: linhas, preços e totais são copiados na criação.
+
+### Endpoints
+
+| Recurso | Operações |
+| --- | --- |
+| Sessão e conta | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/session`, `POST /api/auth/logout` |
+| NFTs | `GET /api/nfts` (busca, filtros, ordenação, paginação), `GET /api/nfts/:nftId` |
+| Favoritos | `GET /api/favorites`, `PUT /api/favorites/:nftId`, `DELETE /api/favorites/:nftId` (idempotentes) |
+| Carrinho | `GET /api/cart`, `POST /api/cart/items`, `PATCH /api/cart/items/:nftId/:editionId` (quantidade absoluta), `DELETE /api/cart/items/:nftId/:editionId` |
+| Cotação | `POST /api/quote` (cupom, disponibilidade, descontos, taxa de rede e total) |
+| Pedidos | `POST /api/orders` (exige `Idempotency-Key`), `GET /api/orders` (filtro `status`), `GET /api/orders/:orderId` |
+| Perfil | `GET /api/profile`, `PATCH /api/profile` (dados e avatar), `POST /api/profile/password` |
+| Carteiras | `GET /api/wallets`, `PUT /api/wallets/:slot` (principal ou secundária), `POST /api/wallets/:walletId/connect` |
+
+### Eventos Socket.IO
+
+| Evento | Payload (`data`) | Efeito no cliente |
+| --- | --- | --- |
+| `nft.updated` | `{ price, oldPrice, editions: [{ id, available }] }` | Atualiza catálogo, detalhe e carrinho; anuncia a mudança; recarrega carrinho e cotação |
+| `order.updated` | estado do pedido | Atualiza o pedido no cache; a confirmação ou a recusa aparece na tela; um pedido confirmado também invalida carrinho e cotação |
+
+## 3. Cliente HTTP
 
 `src/api/http.ts` (Axios):
 
-- The request interceptor adds `Authorization: Bearer <token>` and `X-Guest-Id`. The guest id owns the visitor cart until it is merged on login.
-- The response interceptor turns every failure into an `ApiError`: API errors, `NETWORK_ERROR`, `TIMEOUT` and `CANCELED`. `isTransient` marks failures worth retrying.
-- When an authenticated request to a private resource gets a 401, `onSessionExpired` listeners are notified. `/auth/*` endpoints are excluded: a wrong password and the boot-time session check handle 401 themselves.
+- O interceptor de requisição adiciona `Authorization: Bearer <token>` e `X-Guest-Id`. O id de visitante é dono do carrinho de quem não está logado, até o merge no login.
+- O interceptor de resposta transforma toda falha em `ApiError`: erros da API, `NETWORK_ERROR`, `TIMEOUT` e `CANCELED`. `isTransient` marca o que vale tentar de novo (conexão, timeout, 5xx).
+- Quando uma requisição autenticada a um recurso privado recebe 401, os listeners de `onSessionExpired` são avisados. Os endpoints `/auth/*` ficam de fora: senha errada e a checagem de sessão no boot tratam o 401 por conta própria.
+- Timeout de 10 s por requisição.
 
-## Session policy
+## 4. Sessão
 
-- **Storage.** The token lives in `localStorage` (`kurio.token`), so the session survives refresh. Passwords exist only in the login/register request body, and the mock stores salted SHA-256 hashes. In a real backend, an `HttpOnly` cookie would be preferable. With MSW there is no server to set one.
-- **Boot.** The `['session']` query calls `GET /auth/session` when a token exists. A 401 discards the token and the user continues as a visitor (`null`), not as an error.
-- **Lifetime.** 30 minutes (`SESSION_TTL_MS` in the mock).
-- **Route guard.** `src/routes/_authenticated.tsx` is a pathless layout. Its `beforeLoad` uses `ensureQueryData(sessionQueryOptions)` and redirects to `/login?redirect=<current url>`. Login and register only accept same-origin paths as `redirect` (`safeRedirect`), which prevents open redirects.
-- **Expiration while navigating.** A private request answered with 401 triggers `onSessionExpired`. `App.tsx` ends the local session, shows a toast and navigates to `/login?redirect=<current url>&reason=expired`. After logging in again, the user returns to the same URL. Server-side state (cart, pending order) is untouched, so the checkout can resume.
-- **Logout and user switch.** `endSession` drops the token, disconnects the socket and removes every cached query except the session one. It does not call `queryClient.clear()`, which would also delete the session query object and leave mounted observers (the header) subscribed to a dead query. Login runs the same cleanup before storing the new session, so data cached for a previous user or visitor is never shown. The local logout is immediate, and revoking the token on the server is best effort. Closing the tab right after "Sair" therefore never keeps the user logged in.
+- **Armazenamento.** O token fica em `localStorage` (`kurio.token`), então a sessão sobrevive ao refresh. Senhas existem só no corpo do login e do cadastro, e o mock guarda hashes SHA-256 com sal. Num backend real, um cookie `HttpOnly` seria preferível; com MSW não há servidor para defini-lo.
+- **Boot.** A query `['session']` chama `GET /auth/session` quando há token. Um 401 descarta o token e o usuário segue como visitante (`null`), não como erro.
+- **Duração.** 30 minutos (`SESSION_TTL_MS` no mock).
+- **Guarda de rota.** `src/routes/_authenticated.tsx` é um layout sem caminho. O `beforeLoad` usa `ensureQueryData(sessionQueryOptions)` e redireciona para `/login?redirect=<url atual>`. Login e cadastro só aceitam caminhos do mesmo domínio em `redirect` (`safeRedirect`), o que evita redirecionamento aberto.
+- **Token vencido é 401, nunca visitante.** No mock, só a ausência de token é visitante. Um token expirado ou desconhecido responde 401 em qualquer rota, inclusive carrinho e cotação. Antes, `optionalUser` convertia token vencido em visitante: o carrinho voltava vazio e o app nunca redirecionava ao login. Foi encontrado pelo teste de expiração no checkout.
+- **Expiração durante a navegação e o checkout.** Uma requisição privada respondida com 401 dispara `onSessionExpired`. O `App.tsx` encerra a sessão local, mostra um toast e navega para `/login?redirect=<url atual>&reason=expired`. Depois de entrar de novo, o usuário volta à mesma URL. O estado do servidor (carrinho, pedido pendente) não é tocado, então o checkout pode ser retomado. Se a sessão expira ao confirmar a compra, nenhum pedido é criado.
+- **Logout e troca de usuário.** `endSession` descarta o token, desconecta o socket e remove toda query em cache, exceto a de sessão. Ele não usa `queryClient.clear()`, que também apagaria o objeto da query de sessão e deixaria observers montados (o header) inscritos numa query morta. O login executa a mesma limpeza antes de guardar a nova sessão, então dados em cache de outro usuário ou do visitante nunca aparecem. O logout local é imediato, e a revogação do token no servidor é "melhor esforço". Fechar a aba logo depois de "Sair" não mantém o usuário logado.
 
-## Query defaults
+## 5. Cache e estado remoto
 
-`src/lib/query-client.ts`: `staleTime` 30 s. Queries retry at most twice and only on transient failures (connection, timeout, 5xx), since retrying a 4xx would fail the same way. Mutations are never retried automatically, so side effects are not duplicated. Per-feature policies are documented with each feature.
+Política em `src/lib/query-client.ts`:
 
-## Mock backend
-
-| File | Role |
+| Regra | Valor |
 | --- | --- |
-| `src/mocks/db.ts` | Backend state (catalog, users, sessions, carts, favorites, wallets, quotes, orders), persisted in `localStorage` (`kurio.mock.db`). `resetDb()` restores the seed. `SCHEMA_VERSION` discards stale persisted state. |
-| `src/mocks/fixtures/` | Deterministic seed: 36 NFTs (the first 9 reproduce the home grid of the layout), 2 users, wallets, favorites, coupons. |
-| `src/mocks/scenarios.ts` | Network scenarios: latency (seeded PRNG), out-of-order responses and failure injection per route. |
-| `src/mocks/utils.ts` | `withScenario` (latency + failures around a resolver), error envelope, auth helpers, serializers. |
-| `src/mocks/images.ts` | Maps an image file name to the bundled asset URL, with a placeholder fallback. |
-| `src/mocks/browser.ts` | Applies `?scenario` / `?mock-reset`, loads the DB and starts the worker. |
+| `staleTime` | 30 s |
+| Retries de query | no máximo 2, com backoff, **só** em falhas transitórias (conexão, timeout, 5xx). Repetir um 4xx falharia igual |
+| Retries de mutation | nenhum. Efeitos colaterais não podem ser duplicados |
+| Chaves | incluem os parâmetros (`['nfts', 'list', query]`) e o id do usuário nos recursos privados, então nada vaza entre consultas ou usuários |
+| Cancelamento | o `signal` do Axios aborta requisições superadas; `placeholderData` mantém a lista anterior na tela (esmaecida, `aria-busy`) enquanto a próxima carrega |
+| Troca de usuário | `endSession` remove os dados privados do cache |
 
-The app never imports from `src/mocks/` besides the `startMocking()` call in `main.tsx`.
+**Invalidação.** Mutations invalidam o que mudaram (salvar carteira invalida `['wallets', id]`, a mesma chave do checkout; salvar o perfil atualiza `['profile', id]` e a sessão, de onde o header lê o nome). Eventos de tempo real fazem patch no cache e invalidam o resto (ver seção 9). Não há polling.
 
-### Fixture data consistency
+**Atualização otimista com rollback.** Em favoritos e na edição de quantidade do carrinho. A interface muda na hora, o snapshot é restaurado em caso de erro (com toast explicando), e só a última mutation em voo reconcilia com o servidor.
 
-The layout uses different token IDs for the same NFT on different screens (Violet Nomad `#0009` vs `#0314`). In the mock, the token ID always comes from the number in the name (`Violet Nomad #314` → `#0314`), and every screen reads it from the same source.
+## 6. Catálogo, detalhe e favoritos
 
-### Images
-
-The layout has four artworks shared by several NFTs. The mock stores only the image file name (`ape-green.png`), never a URL. URLs are resolved per response through `import.meta.glob('/src/assets/nfts/*')`. Vite fingerprints asset URLs per build, so a persisted URL would go stale, and a persisted placeholder would hide images added later.
-
-## Decisions
-
-### MSW 2 instead of MSW 3
-
-The challenge recommends `@mswjs/socket.io-binding` for Socket.IO mocking. Its latest release (0.2.0) declares `msw@^2.10.2` as peer dependency, so the project uses MSW 2.15. Forcing it on MSW 3 (`--legacy-peer-deps`) would be an unsupported combination.
-
-### App loaded after MSW starts
-
-`engine.io-client` captures `globalThis.WebSocket` when its module is evaluated. If the app (and therefore `socket.io-client`) were imported statically in `main.tsx`, it would keep the native WebSocket and bypass MSW. `main.tsx` awaits `worker.start()` and only then does `import('./App')`.
-
-### Tests run against the production build
-
-Playwright's `webServer` runs `build` + `preview`, so E2E tests exercise the same artifact that is deployed (mocks included).
-
-## Real-time transport in the mock environment
-
-Socket.IO events are produced by MSW handlers (`src/mocks/realtime.ts`) through `ws.link` + `@mswjs/socket.io-binding`; the app uses the real `socket.io-client`.
-
-Limitations:
-
-- **WebSocket transport only.** The binding intercepts WebSocket, not HTTP long-polling, so the client uses `transports: ['websocket']`.
-- **Fake handshake without heartbeat.** The binding sends the Engine.IO open packet (`pingInterval` 25s, `pingTimeout` 5s) but never pings. The handler sends a raw ping (`"2"`) every 20s, otherwise the client would drop and reconnect every ~30s.
-- **Default namespace only, no rooms or broadcast helpers.** Per-user isolation is implemented in the handler (see below).
-- **Link by origin.** MSW strips the `/socket.io/` path before matching, so the link targets `window.location.origin` (with `ws`/`wss`).
-- **The mock lives in the page.** A reload restarts the simulated server. Anything time-based (payment settlement) is therefore driven by persisted timestamps, not only by in-memory timers.
-
-### Authentication and scoping
-
-The client passes `auth: (cb) => cb({ token: getToken() })`, so every (re)connection sends the current token in the Socket.IO CONNECT packet (`40{"token":"..."}`). The mock reads that packet, resolves the session and stores the `userId` on the connection. `emitToUser(userId, …)` delivers private events (`order.updated`) only to that user's connections, while `broadcast` sends public ones (`nft.updated`). Visitors connect too (without a token), because they also have a cart and see the catalog. When the user changes (login, logout, expiration), `useRealtime` removes its listeners, disconnects and opens a new connection with the new token, so a previous session's private events can never reach the next user. The listeners are also released when the root unmounts.
-
-### Client handling
-
-`src/realtime/events.ts` validates every event against the contract, ignores already seen `eventId`s and ignores events whose `version` is not newer than the cached resource. A confirmed `order.updated` also invalidates cart and quote, because the server removed the purchased items.
-
-`nft.updated` carries `{ price, oldPrice, editions: [{ id, available }] }` and the NFT `version`. Every REST representation of an NFT carries the same version: `Nft.version` in list and detail, and `CartItem.nftVersion` in the cart. The client compares the event with the highest version found in any of those caches, so after a REST reconciliation a late event that is older than the fetched state is still discarded. A newer event patches detail and list caches in place (`setQueriesData`). If the NFT is in the cart, the cart line is patched, a notice is announced and cart and quote are re-read: totals keep coming only from the API.
-
-The mock bumps the version and broadcasts `nft.updated` on every catalog change: the `updateNft` control, the `price-change` scenario, units reserved by an order and units released by a declined payment. REST and events therefore always describe the same state.
-
-**Notice.** `LiveAnnouncer` (root layout) is a `role="status"` / `aria-live="polite"` region that is always mounted, so screen readers announce text inserted later. It is also the visible notice (with a close button). Toasts are not used for this because sonner has its own live region and the message would be read twice.
-
-**Stale quote on checkout.** The checkout keeps the quote the user reviewed. A new quote with different content (lines, unit prices, quantities, totals) shows the previous and the new total in an alert and disables "Confirmar compra" until "Aceitar novo valor". Quotes are compared by content, not by id, because every quote request returns a new id. The purchase is also blocked while the quote is being re-requested and while it has availability issues. The server still answers `409 QUOTE_CHANGED` as the last barrier.
-
-### Reconciliation with REST
-
-On every `connect`, active `['orders', …]` queries are invalidated and refetched from REST. On a reconnection (any `connect` after the first one of that socket session), catalog, cart and quote are invalidated as well, so changes missed while disconnected are recovered. On the first connection the pages have just fetched their data, so only orders are re-read (a payment can settle between the fetch and the connection). Re-reading everything there would cancel and repeat the requests in flight on every page load. Known gap: a catalog event sent in the few milliseconds between the first fetch and the first connection is lost until the next fetch. The order page always reads `GET /api/orders/:id` on mount (`staleTime: 0`), and the events then keep the same cache entry up to date. There is no polling.
-
-## Orders
-
-| Rule | Where |
-| --- | --- |
-| Creation needs `Idempotency-Key`. The same key with the same body returns the original order, and the same key with a different body returns `409 IDEMPOTENCY_CONFLICT`. | `src/mocks/handlers/orders.ts` |
-| The quote must belong to the user and still match the current cart pricing, otherwise `409 QUOTE_CHANGED`. | `quoteStillValid` in `src/mocks/commerce.ts` |
-| Units are reserved at creation and released if the payment is declined. | `src/mocks/orders.ts` |
-| Settlement happens at the persisted `settleAt`. On boot the mock reschedules pending orders, and `GET /api/orders/:id` settles an order whose deadline has passed. | `resumePendingOrders`, `settleIfDue` |
-| Confirmed and declined are terminal. A confirmation removes only the purchased quantities from the cart. | `settle` |
-| The receipt is a snapshot (lines, prices, totals copied at creation), so later catalog changes never alter it. | `OrderRecord` |
-| Another user's order answers 404, so ids cannot be probed. | `GET /api/orders/:id` |
-
-The client keeps one idempotency key per purchase attempt in `sessionStorage` (`attemptKey` in `src/features/orders/queries.ts`). The key is dropped only when the attempt gets a definitive answer: success, or an error that proves no order was created (4xx). After a transient failure (timeout, connection, 5xx) the order may exist, so the key stays, survives a reload, and any new submission reuses it. "Tentar novamente" resends the same request and recovers the order; a submission with different data gets `IDEMPOTENCY_CONFLICT` instead of a second purchase. `GET /api/orders?status=pending` lists pending orders, used by the pending order notice on cart and checkout.
-
-## Cart
-
-The cart lives on the (mock) server, keyed by owner: `user:<id>` when authenticated, `guest:<X-Guest-Id>` otherwise. On login or register, the visitor cart is merged into the user cart, capped by availability. Prices and availability are joined from the live catalog on every read. Totals always come from `POST /api/quote`, never from client-side math.
-
-## Catalog and layout (E4a)
-
-- **URL state.** `src/lib/search-params.ts` encodes search params as plain query strings (repeated keys for arrays) instead of TanStack's JSON encoding. `parseCatalogSearch` validates field by field with zod, so one bad value does not discard the rest. The router keeps unknown params next to validated ones, so `useCatalogSearch` sanitizes again.
-- **Query keys follow the filters** (`['nfts', 'list', query]`). The query `signal` aborts superseded requests, and `keepPreviousData` keeps the old results on screen (dimmed, `aria-busy`) while the next load. Out-of-order responses cannot overwrite a newer choice because the observer only follows the current key (covered by the `out-of-order` scenario test).
-- **Retries.** Catalog failures are transient (connection, timeout, 5xx), so they retry twice with backoff before showing the error panel (about 3 s of skeletons), then "Tentar novamente" refetches.
-- **Facets** count the NFTs matching every filter except their own group.
-- **Skeletons** reuse the card box model (aspect ratios), so loading does not shift the layout. Shimmer is disabled under `prefers-reduced-motion`.
-
-### Deviations from the Figma (E4a)
-
-| Figma | Implementation | Why |
-| --- | --- | --- |
-| Collections out of alphabetical order | Sorted A–Z (pt-BR) | Comment in the file asks for it |
-| Filters as a plain list | Checkboxes, combinable | Challenge requires combinable filters |
-| Price slider only | Slider + min/max inputs + Apply | Slider is imprecise on mobile (comment) |
-| Mobile infinite scroll | Numbered pagination | Page must live in the URL and survive refresh/history |
-| Central scan FAB in the tab bar | Omitted | No defined action (comment) |
-| Mobile filter drawer not drawn | Sheet with the same panel | Required for mobile |
-| Medallions W/C/D | Icons | Letters have no meaning (comment) |
-| Social brand icons | Text chips (FB, IG…) | lucide v1 dropped brand icons |
-| Prices with comma in the range label | Dot everywhere | Consistent with all other ETH values |
-| Tablet not drawn | Header fits at 768; filters become a drawer below 1280; 3 columns | Breakpoints suggested in the spec |
-| Editorial pages, newsletter, footer help links | Honest "not part of the demo" toast | Out-of-scope actions must not look successful |
-
-## E4b: detalhe e favoritos
-- **Favoritos otimistas:** `useToggleFavorite` atualiza o cache em `onMutate`, restaura o snapshot em `onError` (com toast) e só o último toggle em voo reconcilia com o servidor (`onSettled` + `isMutating`). PUT/DELETE idempotentes no mock; visitante é enviado ao login e volta ao NFT.
-- **Edição pré-selecionada:** derivada (primeira com estoque, ou a escolha do usuário enquanto tiver estoque), não guardada em estado. Sem estoque: botões desabilitados com texto associado por `aria-describedby`.
+- **Estado na URL.** `src/lib/search-params.ts` codifica os search params como query string simples (chaves repetidas para listas), em vez da codificação JSON do TanStack. `parseCatalogSearch` valida campo a campo com Zod, então um valor ruim não descarta o resto. O router mantém params desconhecidos junto dos validados, por isso `useCatalogSearch` sanitiza de novo. Busca, filtros, aba, ordenação e página sobrevivem a refresh e ao histórico; mudar qualquer filtro volta à página 1. Exemplo: `/?q=ape&categories=music&categories=3d-art&networks=ethereum&minPrice=0.5&sort=price-asc&page=2`.
+- **Respostas fora de ordem.** O observer só segue a chave atual, então uma resposta antiga não sobrescreve uma escolha mais nova (coberto pelo cenário `out-of-order`).
+- **Falhas.** O catálogo repete duas vezes com backoff (cerca de 3 s de skeletons) antes do painel de erro; "Tentar novamente" refaz a consulta.
+- **Facetas** contam os NFTs que atendem a todos os filtros, exceto os do próprio grupo.
+- **Skeletons com shimmer** reaproveitam o modelo de caixa dos cards e do detalhe (proporções, grid, espaçamentos), então o carregamento não desloca o conteúdo. No detalhe, a imagem do skeleton fica exatamente onde a real vai ficar (teste mede x, y, largura e altura em desktop e mobile). O shimmer cai para uma única execução instantânea sob `prefers-reduced-motion`.
+- **Favoritos otimistas** (`useToggleFavorite`): atualiza o cache em `onMutate`, restaura em `onError` e só o último toggle em voo reconcilia. PUT e DELETE são idempotentes; visitante é enviado ao login e volta ao NFT.
+- **Edição pré-selecionada:** derivada (primeira com estoque, ou a escolha do usuário enquanto tiver estoque), não guardada em estado. Sem estoque, os botões ficam desabilitados com um texto associado por `aria-describedby`.
 - **Detalhe mobile sem tab bar** (como no Figma): a barra de compra fixa a substitui, e o toast "adicionado" traz a ação "Ver carrinho".
-- **Desvios do Figma:** galeria repete a única arte da API; sem zoom nem "Compartilhar"; aba Avaliações com aviso (não desenhada); botão de carrinho também no desktop (o frame só tem COMPRAR).
 
-## E5: carrinho completo
-- **Contratos:** `PATCH /cart/items/:nftId/:editionId` (quantidade absoluta, 409 se acima do estoque) e `DELETE` idempotente. Cupom segue na cotação (`POST /quote`).
-- **Edição otimista com rollback** (`useCartEdit`): a linha muda na hora; em erro volta o snapshot e um toast explica; só a última edição em voo recarrega carrinho e cotação.
-- **Cupom:** só é guardado depois que a API o aceita (sessionStorage, compartilhado entre carrinho e checkout). Inválido/expirado mostra o motivo no campo; um cupom que expirar depois é removido com aviso (`useCartQuote`). Logout limpa.
-- **Totais** continuam vindo só da cotação; enquanto uma nova carrega, os valores anteriores ficam esmaecidos (`aria-busy`) e "Conectar e finalizar" fica desabilitado. Itens com problema de estoque aparecem na linha e bloqueiam a finalização.
-- **Visitante:** `guestId` já identificava o carrinho; o merge no login e a persistência no refresh têm teste E2E.
-- **Desvios do Figma:** lixeira na linha do nome no mobile (no frame ela sobrepõe o "+", como apontado nos comentários); tab bar escondida em carrinho/detalhe (o frame não a desenha); coluna "Edições" mostra o stepper e a edição vai sob o nome; steppers iguais nas duas larguras exceto o tamanho.
+## 7. Carrinho
 
-## E6: tempo real completo
-- **Socket para visitante também:** `nft.updated` é público e o visitante tem carrinho. A troca de usuário abre uma conexão nova com o token novo, o que mantém o escopo dos eventos privados.
-- **Versão em todo REST de NFT** (`Nft.version`, `CartItem.nftVersion`): o descarte de evento antigo funciona mesmo depois de uma reconciliação.
-- **Reconciliação** em toda reconexão (catálogo, carrinho, cotação, pedidos). Na primeira conexão, só pedidos.
-- **Aviso** em uma região `aria-live` sempre montada, que também é o aviso visível. Sem toast, para não ser lido duas vezes.
-- **Checkout** compara a cotação por conteúdo e exige "Aceitar novo valor". O servidor mantém o `QUOTE_CHANGED`.
-- **Mock:** `updateNft`, `dropConnections` e o cenário `price-change`. Reserva e liberação de unidades por pedido também emitem `nft.updated`.
+O carrinho vive no servidor (mock), por dono: `user:<id>` quando autenticado, `guest:<X-Guest-Id>` caso contrário. No login ou cadastro, o carrinho do visitante é mesclado ao do usuário, limitado pela disponibilidade. Preço e disponibilidade são juntados do catálogo vivo a cada leitura.
 
-## E7a: checkout
+- **Totais** vêm sempre de `POST /api/quote`, nunca de conta no cliente. Enquanto uma nova cotação carrega, os valores anteriores ficam esmaecidos (`aria-busy`) e "Conectar e finalizar" fica desabilitado. Itens com problema de estoque aparecem na linha e bloqueiam a finalização.
+- **Edição otimista** (`useCartEdit`): a linha muda na hora; em erro, volta o snapshot e um toast explica; só a última edição em voo recarrega carrinho e cotação. `PATCH` define a quantidade absoluta (409 se acima do estoque); `DELETE` é idempotente.
+- **Cupom:** só é guardado depois que a API o aceita (`sessionStorage`, compartilhado entre carrinho e checkout). Inválido ou expirado mostra o motivo no campo; um cupom que expire depois é removido com aviso (`useCartQuote`). O logout o limpa.
+- **Visitante:** o `guestId` identifica o carrinho; o merge no login e a persistência após refresh têm teste E2E.
 
-- **Fluxo em etapas:** editar → conectar carteira → revisar → confirmar. Um botão principal só, como no layout, com o rótulo da etapa atual.
-- **Conexão de carteira simulada:** `POST /api/wallets/:id/connect` com provedor e rede. O cenário `wallet-rejected` recusa (`409 WALLET_REJECTED`). Trocar carteira, provedor ou rede invalida a conexão (comparação derivada, sem efeito); "Desconectar" volta ao início.
-- **Revalidação antes de confirmar:** "Confirmar compra" relê a cotação (`refetch`). Se o conteúdo mudou desde a revisão, o pedido não é enviado e aparece o aviso com "Aceitar novo valor". O servidor continua com o `QUOTE_CHANGED` como última barreira.
-- **Idempotência por tentativa** (ver Orders). Clique repetido: botão desabilitado e um `ref` que bloqueia reentrada antes do re-render; mesmo que duas requisições saíssem, a mesma chave devolve o mesmo pedido.
-- **Carteira principal pré-selecionada** (`slot === 'primary'`), com rede e provedor dela.
-- **Desvio do Figma (D4):** os campos de carteira do form desktop (Nome do perfil, Endereço, ENS/secundária, Código de indicação, Nome ENS) são só leitura e vêm da `Wallet` cadastrada. Editar fica em Perfil/Carteiras, para o mesmo dado não ter duas fontes. "Tipo de carteira" virou a escolha da carteira cadastrada, e o rádio "Usar outra carteira?" saiu por ser redundante com ele. Ficam editáveis: nome de exibição, usuário, e-mail, rede e observação.
-- **Desvio do Figma (M4):** o form do colecionador aparece no mobile (o enunciado exige os dados), em uma coluna depois das carteiras. Sem tab bar no checkout, como em carrinho e detalhe. O menu ⋮ e "Trocar carteira" dos cards não foram feitos: os próprios cards trocam a carteira.
-- **Cenários:** `slow-payment` agora fica 8 s pendente (dá tempo de ver o estado e recarregar). `order-timeout` cria o pedido e não responde; a liquidação dele leva 15 s para o pedido ainda estar pendente quando o cliente desiste aos 10 s.
+## 8. Checkout, pedidos e idempotência
 
-## E7b: pedido e escopo
+**Fluxo em etapas:** editar → conectar carteira → revisar → confirmar. Há um único botão principal, como no layout, com o rótulo da etapa atual.
 
-- **Confirmação como modal no desktop (D5), página no mobile.** O modal é aberto pela própria rota `/orders/:id`. Por isso acesso direto e refresh funcionam: não existe estado de "modal aberto" fora da URL. Fechar leva ao início.
-- **Foco:** ao abrir, o foco vai para o título (`DialogTitle`), e o Radix prende o foco dentro do modal e fecha com Esc. O título é o `DialogTitle`, então o dialog tem nome acessível.
-- **Três estados com o mesmo layout:** confirmado (envelope "THANK YOU", hash, "Ver no Etherscan"), pendente (spinner, "Aguardando" no lugar do hash) e recusado (título em `destructive`, link para o carrinho). O recibo vem só do snapshot do pedido.
-- **"Ver no Etherscan" não é link:** o hash é simulado, então o botão fica `aria-disabled` com a dica "Transação simulada" (no hover e no foco, ligada por `aria-describedby`). O `explorerUrl` do contrato continua existindo, mas a UI não o usa.
-- **`Dialog` do shadcn adaptado à casca da Kurio:** overlay `black/60`, `surface-card`, X em primary, barra de 10px na base.
-- **Probe de eventos (só no mock):** `__kurioMock.receivedEvents()` registra, via `socket.onAny`, tudo o que o `socket.io-client` da app recebe. Ele só observa e existe apenas no build com mocks. É o que permite provar que um evento *não* chegou.
-- **O socket é carregado depois do `worker.start()`:** o `engine.io-client` guarda o construtor `WebSocket` quando o módulo é avaliado. Importar o socket no `browser.ts` antes do MSW iniciar fazia o cliente usar o WebSocket nativo e furar o mock. O probe usa `import()` dinâmico depois do start.
-- **`settlePendingOrders()`:** liquida os pendentes na hora, para os testes não dependerem de timer.
+- **Carteira simulada:** `POST /api/wallets/:id/connect` com provedor e rede. O cenário `wallet-rejected` recusa (`409 WALLET_REJECTED`). Trocar carteira, provedor ou rede invalida a conexão (comparação derivada, sem efeito); "Desconectar" volta ao início. A carteira principal vem pré-selecionada, com a rede e o provedor dela.
+- **Revalidação antes de confirmar:** "Confirmar compra" relê a cotação. Se o conteúdo mudou desde a revisão, o pedido não é enviado e aparece o aviso com "Aceitar novo valor". O servidor mantém `409 QUOTE_CHANGED` como última barreira.
+- **Cotação desatualizada:** o checkout guarda a cotação que o usuário revisou. Uma nova cotação com conteúdo diferente (linhas, preços unitários, quantidades, totais) mostra o total anterior e o novo num alerta e desabilita "Confirmar compra" até "Aceitar novo valor". As cotações são comparadas por conteúdo, não por id, porque cada requisição gera um id novo. A compra também fica bloqueada enquanto a cotação é refeita e enquanto há problema de disponibilidade.
 
+### Pedidos (servidor simulado)
 
-## E8: perfil e carteiras
+| Regra | Onde |
+| --- | --- |
+| A criação exige `Idempotency-Key`. A mesma chave com o mesmo corpo devolve o pedido original; com corpo diferente, `409 IDEMPOTENCY_CONFLICT` | `src/mocks/handlers/orders.ts` |
+| A cotação precisa pertencer ao usuário e ainda bater com o preço atual do carrinho, senão `409 QUOTE_CHANGED` | `quoteStillValid` em `src/mocks/commerce.ts` |
+| As unidades são reservadas na criação e liberadas se o pagamento for recusado | `src/mocks/orders.ts` |
+| A liquidação acontece em `settleAt`, persistido. No boot o mock reagenda os pendentes, e `GET /api/orders/:id` liquida um pedido cujo prazo já passou | `resumePendingOrders`, `settleIfDue` |
+| Confirmado e recusado são terminais. A confirmação remove do carrinho apenas as quantidades compradas | `settle` |
+| O recibo é um snapshot (linhas, preços e totais copiados na criação), então mudanças posteriores no catálogo nunca o alteram | `OrderRecord` |
+| O pedido de outro usuário responde 404, então ids não podem ser sondados | `GET /api/orders/:id` |
 
-- **Rotas:** `/profile` é um layout (`AccountLayout`) com duas páginas filhas, `/profile` (dados, avatar e senha) e `/profile/wallets`. No desktop, a sidebar do D8/D9. Os itens sem tela (Atividade, Ofertas, Arquivos baixados, Suporte) usam `OutOfScopeLink`; "Lista de interesse" leva a `/favorites`. Perfil e Carteiras não têm footer, como no layout.
-- **Contratos:** `profileFieldsSchema` e `walletInputSchema` são a única fonte das regras; os formulários derivam deles (`pick`/`extend`) e o mock valida o mesmo schema. Isso garante que a mensagem de erro do servidor seja igual à do cliente.
-- **Erros da API nos campos:** `applyServerErrors` mapeia `fieldErrors` para os campos (`username`/`email` duplicados, `currentPassword` errada, `address` já usado por outra conta). Erros sem campo vão para `root.server`.
-- **Avatar:** o arquivo (PNG/JPG/WebP, até 5 MB) é recortado em quadrado e redimensionado para 256×256 via canvas, codificado em WebP (JPEG se o navegador não gera WebP). O data URL fica com poucos KB e o servidor recusa mais de 100 000 caracteres.
-- **localStorage cheio:** `saveDb()` marca `QuotaExceededError`; ao fim da requisição, `withScenario` desfaz a mudança (volta ao último estado persistido) e responde `STORAGE_FULL` (507) com mensagem clara. Memória e storage nunca divergem.
-- **Cache:** salvar o perfil atualiza `['profile', id]` e a sessão (o header lê o nome dela). Salvar carteira invalida `['wallets', id]`, a mesma chave do checkout.
-- **Carteiras:** um usuário tem uma principal e uma secundária (`PUT /wallets/:slot`). Um endereço não pode pertencer a duas contas; principal e secundária da mesma conta podem repetir o endereço ("Igual à carteira principal").
+### Idempotência no cliente
 
-### Desvios do Figma (E8)
-- **Mobile sem frame:** uma coluna. A sidebar vira abas "Dados do perfil | Carteiras" no topo (a tab bar inferior continua), formulários em coluna única e "Sair" no fim da página, como nas outras telas mobile.
-- **Nome ENS:** campo único com o nome completo (`nome.eth`), em vez de select ".eth" + input. É opcional (o contrato aceita `null`); no formulário de carteira continua obrigatório.
-- **Apelido da carteira:** opcional no perfil, pelo mesmo motivo.
-- **Senha:** o olho de mostrar/ocultar foi adicionado na E9, em todos os campos de senha (ver "E9: testes").
-- **"Igual à carteira principal":** checkbox em vez de rádio, porque pode ser desmarcado; ao marcar, copia os dados da principal para o formulário.
-- **Salvar:** o perfil e a troca de senha têm botões próprios ("Salvar" e "Alterar senha"), para o erro de um não bloquear o outro.
+O cliente guarda uma chave de idempotência por tentativa de compra em `sessionStorage` (`attemptKey` em `src/features/orders/queries.ts`). A chave só é descartada quando a tentativa recebe uma resposta definitiva: sucesso, ou um erro que prova que nenhum pedido foi criado (4xx). Depois de uma falha transitória (timeout, conexão, 5xx) o pedido pode existir; então a chave permanece, sobrevive a um reload, e qualquer novo envio a reutiliza. "Tentar novamente" reenvia a mesma requisição e recupera o pedido; um envio com dados diferentes recebe `IDEMPOTENCY_CONFLICT` em vez de uma segunda compra.
 
-## E9: testes
+**Clique repetido:** o botão fica desabilitado e um `ref` bloqueia a reentrada antes do re-render. Mesmo que duas requisições saíssem, a mesma chave devolveria o mesmo pedido. O teste E2E conta os `POST /api/orders` e exige um só.
 
-- **Toggle de senha:** o `TextField` detecta `type="password"` e desenha o botão de olho dentro do campo, com `aria-label` ("Mostrar senha"/"Ocultar senha") e `aria-pressed`. Login, cadastro e troca de senha herdam sem mudar as telas. O ícone segue o Figma: olho riscado enquanto a senha está oculta. Cada campo tem seu próprio estado, então revelar um não revela os outros.
-- **Expiração com token vencido é 401, não visitante:** `optionalUser` (mock) devolvia `null` para token expirado, e o carrinho/cotação respondiam como se o usuário fosse visitante, com carrinho vazio e sem redirecionar ao login. Agora só a ausência de token é visitante; token vencido ou desconhecido responde 401 e dispara o fluxo de expiração (redirect para o login com `reason=expired`, contexto preservado). Encontrado pelo teste de expiração no checkout.
-- **Controles de mock para eventos:** `replayLastEvent()` reentrega o último evento (mesmo `eventId`) e `emitStaleNftUpdate()` entrega um estado antigo (versão menor, `eventId` novo, registro intacto). Os dois passam pelo servidor do binding, então o caminho continua sendo o `socket.io-client`. O `eventId` novo no evento antigo é de propósito: assim só a checagem de versão pode rejeitá-lo, e não a deduplicação por `eventId`.
-- **Como o teste detecta efeito repetido:** cada anúncio tem um `id` crescente. O teste dispensa o aviso, reenvia o evento e confirma que o aviso não volta. Um evento realmente novo ainda aparece (controle positivo).
-- **Reset por teste:** `openFresh` (`?mock-reset&scenario=`) faz o papel de fixture de reset, e cada teste tem um contexto de navegador novo. Não há fixture customizada a mais.
-- **Regressão visual:** `e2e/visual.spec.ts` (tag `@visual`) cobre início, detalhe, carrinho e pagamento, desktop e mobile. Baselines versionadas **sem sufixo de plataforma** (`snapshotPathTemplate`), tolerância de 2% (`maxDiffPixelRatio`) e `threshold: 0.2`. As fontes são empacotadas, então o que muda entre sistemas é só a rasterização. Dados estáveis: reset, cenário `default`, `page.clock` com data fixa (os timers continuam correndo, senão o MSW não responderia), animações desligadas, fontes e imagens carregadas (as `loading="lazy"` viram `eager` antes da captura de página inteira).
-- **O que a regressão visual não garante:** as baselines foram geradas no Windows 11. A tolerância só foi exercida ali; em macOS/Linux a portabilidade é esperada, não verificada. O README explica como regenerar a baseline local (`npm run test:e2e:visual:update`). Um deslocamento de 1–2 px num elemento pequeno pode passar dentro dos 2%.
-- **Foco do `TabsContent`:** o painel da aba do catálogo recebe foco (Radix, `tabindex=0`) mas tinha `outline-none` sem anel. Corrigido em `ui/tabs.tsx` com `focus-visible:ring-3`.
+### Estados do pedido
 
-### Pendência conhecida (E9)
-- **`DetailSkeleton` não reserva o mesmo espaço do detalhe carregado.** Medido no desktop: o skeleton da imagem fica em x=120, y=128, 444 px e a imagem real em x=260, y=174, 412 px (o skeleton não tem a coluna de miniaturas nem o breadcrumb). No mobile a diferença é de 8 px em y e 5 px de largura. O enunciado pede que o skeleton preserve as dimensões do conteúdo. Fica registrado para ajuste do `DetailSkeleton` (grid `[100px_444px_1fr]` e breadcrumb no desktop).
+A confirmação é um modal no desktop e uma página no mobile, aberta pela própria rota `/orders/:id`. Por isso acesso direto e refresh funcionam: não existe estado de "modal aberto" fora da URL. Fechar leva ao início. Ao abrir, o foco vai para o título (`DialogTitle`, que também dá nome acessível ao diálogo), o Radix prende o foco e Esc fecha.
+
+Há três estados com o mesmo layout: confirmado (envelope "THANK YOU", hash, "Ver no Etherscan"), pendente (spinner, "Aguardando" no lugar do hash) e recusado (título em `destructive`, link para o carrinho). O recibo vem só do snapshot do pedido. "Ver no Etherscan" não é um link: o hash é simulado, então o botão fica `aria-disabled` com a dica "Transação simulada" (no hover e no foco, ligada por `aria-describedby`).
+
+**Recuperação.** O estado do pedido sempre vem de `GET /api/orders/:id` ao montar a página (`staleTime: 0`), e os eventos mantêm a mesma entrada de cache atualizada. Recarregar, reconectar ou perder o `order.updated` leva ao mesmo resultado, sem criar outra compra. `GET /api/orders?status=pending` lista os pendentes e alimenta o aviso de pedido pendente no carrinho e no checkout.
+
+## 9. Tempo real e reconciliação com REST
+
+Os eventos Socket.IO são produzidos por handlers do MSW (`src/mocks/realtime.ts`) via `ws.link` + `@mswjs/socket.io-binding`; o app usa o `socket.io-client` real. Nenhum setter, callback ou acesso direto ao cache simula evento.
+
+### Transporte e limitações do ambiente de mocks
+
+- **Só WebSocket.** O binding intercepta WebSocket, não long-polling HTTP, então o cliente usa `transports: ['websocket']`.
+- **Handshake falso sem heartbeat.** O binding envia o pacote de abertura do Engine.IO (`pingInterval` 25 s, `pingTimeout` 5 s) mas nunca faz ping. O handler envia um ping cru (`"2"`) a cada 20 s; sem isso o cliente cairia e reconectaria a cada ~30 s.
+- **Só o namespace padrão, sem salas nem helpers de broadcast.** O isolamento por usuário é implementado no handler (abaixo).
+- **Link por origem.** O MSW remove o caminho `/socket.io/` antes de casar, então o link aponta para `window.location.origin` (com `ws`/`wss`).
+- **O mock vive na página.** Um reload reinicia o servidor simulado. Por isso o que depende de tempo (liquidação de pagamento) usa timestamps persistidos, não só timers em memória.
+- **O socket é carregado depois do `worker.start()`.** O `engine.io-client` guarda o construtor `WebSocket` quando o módulo é avaliado; importá-lo antes de o MSW iniciar faria o cliente usar o WebSocket nativo e furar o mock.
+
+### Autenticação e escopo
+
+O cliente passa `auth: (cb) => cb({ token: getToken() })`, então toda (re)conexão envia o token atual no pacote CONNECT (`40{"token":"..."}`). O mock lê o pacote, resolve a sessão e guarda o `userId` na conexão. `emitToUser(userId, …)` entrega eventos privados (`order.updated`) só às conexões daquele usuário; `broadcast` envia os públicos (`nft.updated`). Visitantes também conectam (sem token), porque também têm carrinho e veem o catálogo. Quando o usuário muda (login, logout, expiração), `useRealtime` remove os listeners, desconecta e abre uma nova conexão com o novo token, então eventos privados de uma sessão anterior nunca chegam ao próximo usuário. Os listeners também são liberados quando a raiz desmonta.
+
+### Tratamento no cliente
+
+`src/realtime/events.ts` valida todo evento contra o contrato, ignora `eventId` já visto e ignora eventos cuja `version` não é mais nova que o recurso em cache. Um `order.updated` confirmado também invalida carrinho e cotação, porque o servidor removeu os itens comprados.
+
+Toda representação REST de um NFT carrega a mesma versão: `Nft.version` na lista e no detalhe, `CartItem.nftVersion` no carrinho. O cliente compara o evento com a maior versão encontrada em qualquer um desses caches, então, depois de uma reconciliação com REST, um evento tardio mais antigo que o estado buscado ainda é descartado. Um evento mais novo faz patch no detalhe e na lista (`setQueriesData`); se o NFT está no carrinho, a linha é atualizada, um aviso é anunciado e carrinho e cotação são relidos: os totais continuam vindo só da API.
+
+O mock incrementa a versão e transmite `nft.updated` em toda mudança de catálogo: o controle `updateNft`, o cenário `price-change`, unidades reservadas por um pedido e unidades liberadas por um pagamento recusado. REST e eventos descrevem sempre o mesmo estado.
+
+**Aviso.** O `LiveAnnouncer` (layout raiz) é uma região `role="status"` / `aria-live="polite"` sempre montada, então leitores de tela anunciam o texto inserido depois. Ele também é o aviso visível (com botão de fechar). Não se usa toast aqui porque o sonner tem a própria região live e a mensagem seria lida duas vezes.
+
+### Reconciliação com REST
+
+A cada `connect`, as queries ativas `['orders', …]` são invalidadas e relidas do REST. Numa reconexão (qualquer `connect` depois do primeiro daquela sessão de socket), catálogo, carrinho e cotação também são invalidados, recuperando o que mudou enquanto estava desconectado. Na primeira conexão, as páginas acabaram de buscar seus dados, então só os pedidos são relidos (um pagamento pode ser liquidado entre a busca e a conexão); reler tudo ali cancelaria e repetiria as requisições em voo a cada carregamento. Lacuna conhecida: um evento de catálogo enviado nos poucos milissegundos entre a primeira busca e a primeira conexão se perde até a próxima busca.
+
+### Cenário obrigatório: preço muda com o item no carrinho
+
+1. Um NFT está no carrinho. 2. O preço ou a disponibilidade muda (`nft.updated`). 3. Um aviso `aria-live` informa a alteração e o resumo é atualizado. 4. O checkout bloqueia a confirmação com a cotação antiga até "Aceitar novo valor". Coberto por testes E2E de preço e de edição esgotada, no carrinho e no checkout.
+
+### Duplicados, antigos e desconexão
+
+Evento duplicado (mesmo `eventId`) e evento antigo (versão menor, `eventId` novo) são entregues de verdade pelo socket e descartados pelo cliente; o teste prova que o aviso dispensado não volta e que o preço não regride. Uma desconexão com pedido pendente, com a liquidação ocorrendo enquanto o socket está fora, é recuperada na reconexão pela leitura do REST, sem segundo pedido.
+
+## 10. Perfil e carteiras
+
+- **Rotas.** `/profile` é um layout (`AccountLayout`) com duas filhas, `/profile` (dados, avatar e senha) e `/profile/wallets`. No desktop, a sidebar do Figma. Itens sem tela (Atividade, Ofertas, Arquivos baixados, Suporte) usam `OutOfScopeLink`; "Lista de interesse" leva a `/favorites`.
+- **Contratos.** `profileFieldsSchema` e `walletInputSchema` são a única fonte das regras: os formulários derivam deles (`pick`/`extend`) e o mock valida o mesmo schema. A mensagem de erro do servidor é igual à do cliente.
+- **Erros da API nos campos.** `applyServerErrors` mapeia `fieldErrors` para os campos (usuário ou e-mail duplicado, senha atual errada, endereço já usado por outra conta). Erros sem campo vão para `root.server`.
+- **Avatar.** O arquivo (PNG, JPG ou WebP, até 5 MB) é recortado em quadrado e redimensionado para 256×256 via canvas, codificado em WebP (JPEG se o navegador não gera WebP). O data URL fica com poucos KB e o servidor recusa mais de 100 000 caracteres.
+- **`localStorage` cheio.** `saveDb()` marca `QuotaExceededError`; ao fim da requisição, `withScenario` desfaz a mudança (volta ao último estado persistido) e responde `STORAGE_FULL` (507) com mensagem clara. Memória e storage nunca divergem.
+- **Carteiras.** Um usuário tem uma principal e uma secundária (`PUT /wallets/:slot`). Um endereço não pode pertencer a duas contas; a principal e a secundária da mesma conta podem repetir o endereço ("Igual à carteira principal").
+- **Senha.** Todo campo de senha (login, cadastro e troca) tem o botão de olho para mostrar ou ocultar, com `aria-label` ("Mostrar senha" / "Ocultar senha") e `aria-pressed`. O `TextField` o desenha ao detectar `type="password"`, então as telas herdam sem mudar. Cada campo tem seu próprio estado.
+
+## 11. Mocks
+
+| Arquivo | Papel |
+| --- | --- |
+| `src/mocks/db.ts` | Estado do backend (catálogo, usuários, sessões, carrinhos, favoritos, carteiras, cotações, pedidos), persistido em `localStorage` (`kurio.mock.db`). `resetDb()` restaura a semente. `SCHEMA_VERSION` descarta estado persistido antigo |
+| `src/mocks/fixtures/` | Semente determinística: 36 NFTs (os 9 primeiros reproduzem a grade da home do layout), 2 usuários, carteiras, favoritos, cupons |
+| `src/mocks/scenarios.ts` | Cenários de rede: latência (PRNG com semente), respostas fora de ordem e injeção de falhas por rota |
+| `src/mocks/utils.ts` | `withScenario` (latência e falhas em volta de um resolver), envelope de erro, helpers de autenticação, serializadores |
+| `src/mocks/images.ts` | Mapeia o nome de um arquivo de imagem para a URL do asset empacotado, com placeholder de reserva |
+| `src/mocks/realtime.ts` | Servidor Socket.IO simulado (escopo por usuário, broadcast, reentrega, queda de conexão) |
+| `src/mocks/browser.ts` | Aplica `?scenario` e `?mock-reset`, carrega o banco, inicia o worker e expõe `window.__kurioMock` |
+
+O app nunca importa de `src/mocks/` além da chamada `startMocking()` em `main.tsx`. A camada é ativada por `VITE_ENABLE_MOCKS` e está presente no build de demonstração.
+
+- **Consistência.** Catálogo, favoritos, carrinho, perfil, carteiras e pedidos compartilham o mesmo estado. Mudanças aparecem nas respostas REST e nos eventos.
+- **Determinismo.** A latência vem de um PRNG com semente: a mesma sequência de requisições recebe sempre os mesmos atrasos. Os cenários cobrem sucesso e resultado vazio, latência variável e respostas fora de ordem, falha de conexão e HTTP 4xx/5xx, sessão expirada, conflito de cadastro, cupom inválido ou expirado, preço alterado ou edição esgotada, timeout após criar o pedido, pagamento confirmado e recusado. A lista completa e como reproduzir cada um está no README.
+- **Consistência dos IDs.** O layout usa token IDs diferentes para o mesmo NFT em telas diferentes (Violet Nomad `#0009` e `#0314`). No mock o token ID vem sempre do número no nome (`Violet Nomad #314` → `#0314`), e toda tela lê da mesma fonte.
+- **Imagens.** O layout tem quatro artes compartilhadas por vários NFTs. O mock guarda só o nome do arquivo (`ape-green.png`), nunca uma URL. As URLs são resolvidas a cada resposta via `import.meta.glob('/src/assets/nfts/*')`: o Vite versiona as URLs por build, então uma URL persistida ficaria velha, e um placeholder persistido esconderia imagens adicionadas depois. As artes são servidas em WebP (`npm run assets:optimize`).
+- **Controles de teste** (`window.__kurioMock`): `reset`, `setScenario`, `getScenario`, `expireSessions`, `updateNft`, `dropConnections`, `replayLastEvent`, `emitStaleNftUpdate`, `settlePendingOrders` e `receivedEvents`. Este último é um probe só do mock: registra, via `socket.onAny`, tudo o que o `socket.io-client` do app recebe. Ele só observa, e é o que permite provar que um evento *não* chegou (por exemplo, depois de trocar de usuário). `emitStaleNftUpdate` usa um `eventId` novo de propósito: assim só a checagem de versão pode rejeitar o evento, e não a deduplicação.
+
+## 12. Acessibilidade
+
+- Navegação por teclado em todos os fluxos; o primeiro `Tab` leva ao link "Pular para o conteúdo"; todo controle focável desenha um indicador de foco (o painel de abas do catálogo, que recebia foco sem anel, foi corrigido).
+- Diálogos e drawers prendem o foco, fecham com Esc e devolvem o foco ao gatilho. O modal do pedido leva o foco ao título.
+- Campos com `label`, `aria-invalid` e erro ligado por `aria-describedby`; o primeiro campo com erro recebe o foco.
+- Avisos de tempo real e de mutations em regiões `aria-live` sempre montadas.
+- Skeletons com `role="status"` e nome acessível; sem animação sob `prefers-reduced-motion`.
+- Imagens relevantes com texto alternativo; decorativas com `alt=""`.
+- Estados que não dependem só de cor (texto, ícone, `aria-current`, `aria-pressed`).
+- "Ver no Etherscan" e ações fora do escopo não parecem funcionar: botão desabilitado com explicação, ou aviso "não faz parte da demonstração".
+
+## 13. Testes
+
+- **Unitários** (`npm run test:unit`, Node test runner): ETH, busca do catálogo, fixtures e tratamento de eventos.
+- **E2E** (`npm run test:e2e`, Playwright, Chromium desktop 1440×900 e mobile Pixel 7): 12 cenários obrigatórios do enunciado, mais testes de escopo por usuário e de recuperação. O Playwright faz o build e serve com `vite preview` numa porta fixa, o mesmo artefato do deploy. O servidor nunca é reaproveitado: se a porta estiver ocupada, a execução para com um erro claro, para nunca testar um build velho.
+- **Estado isolado.** Cada teste abre sua primeira página com `openFresh` (`?mock-reset&scenario=…`), que restaura a semente e escolhe o cenário, e cada teste ganha um contexto de navegador novo. `openFresh` faz o papel de fixture de reset; não há fixture customizada a mais.
+- **Tempo e rede.** `page.clock` controla o relógio nos testes sensíveis a tempo (latência, regressão visual); os cenários controlam latência e falhas; os eventos passam pelo `socket.io-client` real, disparados pelos controles do mock.
+- **Zero skipped.** A confirmação do pedido é modal no desktop e página no mobile; o teste verifica o formato de cada projeto em vez de pular um deles.
+- **Relatório e trace.** Relatório HTML em `playwright-report/`; uma falha mantém trace, screenshot e contexto de erro em `test-results/`.
+- **Regressão visual** (`e2e/visual.spec.ts`, tag `@visual`): início, detalhe, carrinho e pagamento, página inteira, desktop e mobile. Dados estáveis: reset, cenário `default`, `page.clock` com data fixa (os timers continuam correndo, senão o MSW não responderia), animações desligadas, fontes e imagens carregadas (as `loading="lazy"` viram `eager` antes da captura).
+  - As baselines são versionadas **sem sufixo de plataforma** (`snapshotPathTemplate`), com tolerância de 2% de pixels (`maxDiffPixelRatio`) e `threshold: 0.2`. As fontes são empacotadas, então o que muda entre sistemas é a rasterização.
+  - **O que não garante:** as baselines foram geradas no Windows 11; em macOS ou Linux a portabilidade é esperada, não verificada. O README explica como regenerar a baseline local. Um deslocamento de 1 a 2 px num elemento pequeno pode passar dentro dos 2%.
+
+## 14. Performance (Lighthouse)
+
+`npm run lighthouse` (`scripts/lighthouse.mjs`) audita início, detalhe, carrinho e pagamento, em mobile e desktop, com 3 execuções por página e perfil e a mediana de cada categoria, LCP, CLS e TBT. Os relatórios HTML e JSON da execução mediana, mais `summary.json` e `summary.md` (notas de todas as execuções, versões e ambiente), ficam versionados em `reports/lighthouse/`.
+
+**Condições.** Build de produção servido por `vite preview`, mocks ligados, cenário `default`. Início e detalhe como visitante; carrinho e pagamento logados, com um item no carrinho. Para ter esse estado, o script abre o Chromium do Playwright com porta de depuração, faz o login e adiciona o item, e roda o Lighthouse nesse mesmo navegador com `disableStorageReset` (o `localStorage` e o service worker guardam a sessão e o backend simulado). Como esse flag também pula a limpeza do cache HTTP, o script a faz pelo CDP antes de cada execução: toda medição é de carga fria. Nada é simplificado para melhorar a nota.
+
+**Resultados (mediana).** Todas as páginas e perfis atingem as metas (Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥ 95, SEO ≥ 90):
+
+| Perfil | Performance | Accessibility | Best Practices | SEO | LCP | CLS | TBT |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| mobile | 98 a 99 | 100 | 100 | 100 | 1,95 a 2,10 s | ≤ 0,003 | 6 a 93 ms |
+| desktop | 100 | 100 | 100 | 100 | 0,61 a 0,81 s | ≤ 0,002 | 0 a 13 ms |
+
+A tabela por página está no README e em `reports/lighthouse/summary.md`. As medições vêm de uma única máquina local; os valores absolutos variam entre máquinas, e as notas usam o throttling simulado do Lighthouse, menos sensível a isso.
+
+**O que a primeira auditoria encontrou (e foi corrigido no app).** O carrinho no desktop saiu com Performance 87, por CLS 0,254. A causa não era o carregamento do carrinho em si:
+
+1. O grupo de ações do header (busca, carrinho, "Entrar") só tinha 32 px de altura enquanto a sessão estava pendente e passava a 40 px (visitante) ou 36 px (logado) quando ela resolvia. A página inteira descia 4 a 8 px. Correção: altura fixa de 40 px no grupo, mais um espaço reservado para o botão enquanto a sessão carrega.
+2. O footer, visível dentro da janela enquanto o conteúdo ainda era curto, era empurrado para baixo a cada etapa (esqueleto, carrinho, cotação, prateleira). Correção: `#main` com no mínimo uma tela de altura em `md` e acima, de modo que o footer (que tem margem superior própria) começa sempre abaixo da dobra.
+
+CLS no desktop, medido com um probe de `layout-shift` antes e depois: início 0,081 → 0,002, detalhe 0,26 → 0,0002, carrinho 0,67 → 0,024 no probe sem throttling (0,254 → 0,001 no Lighthouse).
+
+**Outros dois problemas que a auditoria achou, também corrigidos no app.**
+
+3. **SEO 91 a 92: `robots.txt` inválido.** O app não tinha `robots.txt`. O `vite preview` (e qualquer servidor com fallback de SPA) devolve o `index.html` para essa rota, e o Lighthouse o lê como um robots.txt com 17 erros. Correção: `public/robots.txt` válido (`User-agent: *` / `Allow: /`). No Vercel, os arquivos estáticos têm prioridade sobre o rewrite do `vercel.json`, então o arquivo é servido de verdade.
+4. **Acessibilidade 97 no pagamento (desktop): `link-in-text-block`.** O link "Aplique aqui" só se distinguia do texto pela cor, o que o enunciado proíbe ("estados não dependentes apenas de cor"). Correção: sublinhado permanente.
+
+**Margem restante.** Nenhuma categoria fica abaixo de 98. O resíduo de CLS do carrinho num probe sem throttling (cerca de 0,02) é o resumo do pedido, 28 px mais alto que o skeleton dele; não foi corrigido por estar bem abaixo do limite de 0,1 (no Lighthouse o CLS do carrinho é 0,001).
+
+## 15. Decisões técnicas
+
+- **MSW 2 em vez de MSW 3.** O desafio recomenda `@mswjs/socket.io-binding`. A última versão dele (0.2.0) declara `msw@^2.10.2` como peer dependency, então o projeto usa MSW 2.15. Forçar o MSW 3 (`--legacy-peer-deps`) seria uma combinação sem suporte.
+- **App carregado depois que o MSW inicia.** O `engine.io-client` captura `globalThis.WebSocket` quando o módulo é avaliado. Se o app (e portanto o `socket.io-client`) fosse importado estaticamente em `main.tsx`, ele manteria o WebSocket nativo e contornaria o MSW. O `main.tsx` espera o `worker.start()` e só então faz `import('./App')`.
+- **Testes contra o build de produção.** O `webServer` do Playwright roda `build` + `preview`, então os E2E exercitam o mesmo artefato que vai ao ar, com mocks.
+- **Token em `localStorage`.** Limitação do ambiente simulado (ver seção 4).
+- **Totais só da API.** O cliente nunca soma preço; a cotação da API é a referência para finalizar.
+- **Paginação numerada em vez de scroll infinito.** A página precisa viver na URL e sobreviver a refresh e histórico.
+
+## 16. Desvios do Figma
+
+| Figma | Implementação | Por quê |
+| --- | --- | --- |
+| Coleções fora de ordem alfabética | Ordenadas A–Z (pt-BR) | Comentário no arquivo pede |
+| Filtros como lista simples | Checkboxes combináveis | O enunciado exige filtros combináveis |
+| Faixa de preço só com slider | Slider + campos mín/máx + Aplicar | O slider é impreciso no mobile (comentário) |
+| Scroll infinito no mobile | Paginação numerada | A página vive na URL |
+| FAB central de scan na tab bar | Omitido | Sem ação definida (comentário) |
+| Drawer de filtros mobile não desenhado | Sheet com o mesmo painel | Necessário no mobile |
+| Medalhões W/C/D | Ícones | As letras não têm significado (comentário) |
+| Ícones de marcas sociais | Chips de texto (FB, IG…) | O lucide v1 removeu ícones de marcas |
+| Preços com vírgula no rótulo da faixa | Ponto em todo lugar | Consistente com os demais valores em ETH |
+| Tablet não desenhado | Header cabe em 768; filtros viram drawer abaixo de 1280; 3 colunas | Breakpoints sugeridos na especificação |
+| Páginas editoriais, newsletter, links de ajuda do footer | Aviso honesto "não faz parte da demonstração" | Ações fora do escopo não podem parecer funcionais |
+| Detalhe: galeria com várias imagens | Repete a única arte da API; sem zoom nem "Compartilhar" | A API tem uma arte por NFT |
+| Detalhe: aba Avaliações não desenhada | Aviso na aba | Fora do escopo |
+| Detalhe: só o botão COMPRAR no desktop | Também o botão de carrinho | Adicionar sem comprar é um fluxo obrigatório |
+| Carrinho mobile: lixeira sobrepõe o "+" | Lixeira na linha do nome | Problema apontado nos comentários |
+| Tab bar em carrinho, detalhe e checkout mobile | Escondida | O frame não a desenha |
+| Carrinho: coluna "Edições" | Mostra o stepper; a edição vai sob o nome | Legibilidade |
+| Checkout desktop: campos de carteira editáveis | Só leitura, vindos da `Wallet` cadastrada; editar fica em Perfil/Carteiras | O mesmo dado não pode ter duas fontes. "Tipo de carteira" virou a escolha da carteira cadastrada, e o rádio "Usar outra carteira?" saiu por ser redundante |
+| Checkout mobile sem o form do colecionador | Form em uma coluna depois das carteiras | O enunciado exige os dados |
+| Checkout mobile: menu ⋮ e "Trocar carteira" nos cards | Não feitos | Os próprios cards trocam a carteira |
+| Confirmação: só o estado "confirmado" desenhado | Variantes "pendente" e "recusado" com o mesmo layout | Estados exigidos pelo enunciado |
+| Perfil, carteiras e confirmação sem frame mobile | Uma coluna; sidebar vira abas "Dados do perfil \| Carteiras"; "Sair" no fim | O enunciado exige que funcionem no mobile |
+| Nome ENS: select ".eth" + input | Campo único com o nome completo (`nome.eth`), opcional | Simplicidade; o contrato aceita `null` |
+| Apelido da carteira | Opcional no perfil | Idem |
+| "Igual à carteira principal" como rádio | Checkbox; ao marcar, copia os dados | Pode ser desmarcado |
+| Perfil e senha em um só "Salvar" | Botões próprios ("Salvar" e "Alterar senha") | O erro de um não bloqueia o outro |
+| Input "Nome de usuário" com placeholder centralizado | Alinhado à esquerda | Inconsistência do frame |
+
+Os ajustes de acessibilidade em relação ao layout (foco visível em todo controle, avisos `aria-live`, "Pular para o conteúdo", rótulos e erros associados) estão na seção 12.
+
+## 17. Limitações conhecidas
+
+- **Mocks vivem na página.** O "servidor" é o navegador: sem multiusuário real, sem concorrência entre abas e com um limite de ~5 MB de `localStorage` (o `STORAGE_FULL` cobre o estouro).
+- **Socket.IO só por WebSocket** e sem salas (ver seção 9).
+- **Lacuna de milissegundos** entre a primeira busca de catálogo e a primeira conexão do socket (seção 9).
+- **Regressão visual** validada apenas no Windows 11 (seção 13).
+- **A altura total do detalhe muda** quando os dados chegam, porque o conteúdo abaixo da dobra só aparece depois; a imagem e o topo da página não se mexem.
+- Perfis, carteiras e pagamentos são simulados; integrações reais (blockchain, extensões de carteira, gateways) estão fora do escopo do desafio.
