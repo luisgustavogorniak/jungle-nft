@@ -23,7 +23,7 @@ export function toOrder(record: OrderRecord): Order {
     outcome: _outcome,
     ...order
   } = record
-  return { ...order, lines: order.lines.map((line) => ({ ...line, image: resolveNftImage(line.image) })) }
+  return { ...order, lines: order.lines.map((line) => ({ ...line, image: resolveNftImage(line.image, 'thumb') })) }
 }
 
 function settle(orderId: string) {

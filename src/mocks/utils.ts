@@ -136,7 +136,7 @@ export function ownerKey(request: Request): string {
 
 export function toNft(record: NftRecord): Nft {
   const { imageFile, ...nft } = record
-  return { ...nft, image: resolveNftImage(imageFile) }
+  return { ...nft, image: resolveNftImage(imageFile), thumbnail: resolveNftImage(imageFile, 'thumb') }
 }
 
 export function toPublicUser(user: UserRecord) {

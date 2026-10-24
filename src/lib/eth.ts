@@ -54,3 +54,14 @@ export function compareEth(a: EthString, b: EthString): -1 | 0 | 1 {
 export function formatEth(value: EthString): string {
   return `${fromWei(toWei(value))} ETH`
 }
+
+const CENTI_WEI = 10n ** 16n
+
+/** Whole hundredths of an ETH (floor), for controls that need integers such as sliders. */
+export function ethToCenti(value: EthString): number {
+  return Number(toWei(value) / CENTI_WEI)
+}
+
+export function centiToEth(centi: number): EthString {
+  return fromWei(BigInt(centi) * CENTI_WEI)
+}

@@ -37,7 +37,7 @@ export function toCart(ownerKey: string): Cart {
         ...item,
         name: nft.name,
         tokenId: nft.tokenId,
-        image: resolveNftImage(nft.imageFile),
+        image: resolveNftImage(nft.imageFile, 'thumb'),
         editionLabel: edition.label,
         unitPrice: nft.price,
         available: edition.available,

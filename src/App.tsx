@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { onSessionExpired } from '@/api/http'
 import { endSession } from '@/features/auth/session'
 import { createQueryClient } from '@/lib/query-client'
+import { parseSearch, stringifySearch } from '@/lib/search-params'
 import { routeTree } from './routeTree.gen'
 
 const queryClient = createQueryClient()
@@ -13,6 +14,8 @@ const router = createRouter({
   routeTree,
   context: { queryClient },
   defaultPreload: 'intent',
+  parseSearch,
+  stringifySearch,
 })
 
 declare module '@tanstack/react-router' {

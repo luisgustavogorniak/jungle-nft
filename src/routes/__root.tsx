@@ -1,8 +1,12 @@
-import { createRootRouteWithContext, Link, Outlet, useNavigate } from '@tanstack/react-router'
+import { createRootRouteWithContext, Link, Outlet } from '@tanstack/react-router'
 import type { QueryClient } from '@tanstack/react-query'
+import { MobileTabBar } from '@/components/layout/mobile-tab-bar'
+import { SiteFooter } from '@/components/layout/site-footer'
+import { SiteHeader } from '@/components/layout/site-header'
+import { Container } from '@/components/layout/container'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
-import { useLogout, useSession } from '@/features/auth/session'
+import { useSession } from '@/features/auth/session'
 import { useRealtime } from '@/realtime/use-realtime'
 
 export interface RouterContext {
@@ -11,43 +15,20 @@ export interface RouterContext {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
-  notFoundComponent: () => (
-    <main className="p-8">
-      <h1 className="text-2xl font-semibold">Página não encontrada</h1>
-      <Link to="/" className="underline">
-        Voltar para o início
-      </Link>
-    </main>
-  ),
+  notFoundComponent: NotFound,
 })
 
-function SessionArea() {
-  const { user, isPending } = useSession()
-  const logout = useLogout()
-  const navigate = useNavigate()
-
-  if (isPending) return null
-  if (!user) {
-    return (
-      <Link to="/login" search={{ redirect: undefined }}>
-        Entrar
-      </Link>
-    )
-  }
+function NotFound() {
   return (
-    <div className="flex items-center gap-3">
-      <span data-testid="session-user">{user.displayName}</span>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => {
-          logout.mutate()
-          void navigate({ to: '/' })
-        }}
-      >
-        Sair
-      </Button>
-    </div>
+    <main>
+      <Container className="grid justify-items-start gap-4 py-24">
+        <h1 className="text-[28px] font-bold">Página não encontrada</h1>
+        <p className="text-copy">O endereço que você acessou não existe ou foi movido.</p>
+        <Button asChild>
+          <Link to="/">Voltar para o início</Link>
+        </Button>
+      </Container>
+    </main>
   )
 }
 
@@ -57,18 +38,18 @@ function RootLayout() {
 
   return (
     <>
-      <header className="flex items-center justify-between gap-4 border-b p-4">
-        <Link to="/" className="font-bold tracking-widest">
-          KURIO
-        </Link>
-        <nav aria-label="Principal" className="flex gap-4">
-          <Link to="/">Início</Link>
-          <Link to="/cart">Carrinho</Link>
-          <Link to="/profile">Meu perfil</Link>
-        </nav>
-        <SessionArea />
-      </header>
-      <Outlet />
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+      >
+        Pular para o conteúdo
+      </a>
+      <SiteHeader />
+      <div id="main" tabIndex={-1} className="pb-28 outline-none md:pb-0">
+        <Outlet />
+      </div>
+      <SiteFooter />
+      <MobileTabBar />
       <Toaster />
     </>
   )

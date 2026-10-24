@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { login, mockControls, openFresh, users } from './support/mock'
+import { expectSignedIn, expectSignedOut, login, logout, mockControls, openFresh, openProfile, users } from './support/mock'
 
 test.describe('account and session', () => {
   test('logs in, survives a refresh and logs out', async ({ page }) => {
@@ -7,14 +7,13 @@ test.describe('account and session', () => {
     await login(page, users.nova)
 
     await expect(page).toHaveURL('/')
-    await expect(page.getByTestId('session-user')).toHaveText(users.nova.displayName)
+    await expectSignedIn(page, users.nova.displayName)
 
     await page.reload()
-    await expect(page.getByTestId('session-user')).toHaveText(users.nova.displayName)
+    await expectSignedIn(page, users.nova.displayName)
 
-    await page.getByRole('button', { name: 'Sair' }).click()
-    await expect(page.getByRole('link', { name: 'Entrar' })).toBeVisible()
-    await expect(page.getByTestId('session-user')).toHaveCount(0)
+    await logout(page, users.nova.displayName)
+    await expectSignedOut(page)
   })
 
   test('shows field validation and wrong credentials errors', async ({ page }) => {
@@ -47,7 +46,7 @@ test.describe('account and session', () => {
     await page.getByLabel('E-mail').fill('marina@kurio.test')
     await page.getByRole('button', { name: 'Criar conta' }).click()
 
-    await expect(page.getByTestId('session-user')).toHaveText('marina')
+    await expectSignedIn(page, 'marina')
   })
 
   test('register validates password confirmation on the client', async ({ page }) => {
@@ -71,14 +70,14 @@ test.describe('account and session', () => {
   test('expired session redirects to login keeping the context to resume', async ({ page }) => {
     await openFresh(page, '/login')
     await login(page, users.nova)
-    await expect(page.getByTestId('session-user')).toBeVisible()
+    await expectSignedIn(page, users.nova.displayName)
 
     await mockControls(page, 'expireSessions')
-    await page.getByRole('link', { name: 'Meu perfil' }).click()
+    await openProfile(page, users.nova.displayName)
 
     await expect(page).toHaveURL(/\/login\?.*redirect=%2Fprofile.*reason=expired/)
-    await expect(page.getByRole('status')).toContainText('Sua sessão expirou')
-    await expect(page.getByTestId('session-user')).toHaveCount(0)
+    await expect(page.getByRole('status').filter({ hasText: 'Sua sessão expirou' })).toBeVisible()
+    await expectSignedOut(page)
 
     await login(page, users.nova)
     await expect(page).toHaveURL('/profile')
@@ -90,7 +89,7 @@ test.describe('account and session', () => {
     await expect(page.getByTestId('profile')).toContainText(users.nova.email)
 
     // Navigating right after the click: the logout must not depend on the request finishing.
-    await page.getByRole('button', { name: 'Sair' }).click()
+    await logout(page, users.nova.displayName)
     await page.goto('/login?redirect=%2Fprofile')
     await login(page, users.leo)
 

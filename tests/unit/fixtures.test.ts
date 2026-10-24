@@ -11,7 +11,7 @@ const nfts = buildNftFixtures()
 describe('nft fixtures', () => {
   it('match the API contract', () => {
     for (const { imageFile, ...nft } of nfts) {
-      nftSchema.parse({ ...nft, image: `/assets/${imageFile}` })
+      nftSchema.parse({ ...nft, image: `/assets/${imageFile}`, thumbnail: `/assets/${imageFile}` })
     }
   })
 
@@ -51,7 +51,7 @@ describe('nft fixtures', () => {
 
   it('point every NFT to an existing image file', () => {
     for (const nft of nfts) {
-      assert.ok(existsSync(new URL(`../../src/assets/nfts/${nft.imageFile}`, import.meta.url)), nft.imageFile)
+      assert.ok(existsSync(new URL(`../../src/assets/nfts/${nft.imageFile.replace('.png', '')}-960.webp`, import.meta.url)), nft.imageFile)
     }
   })
 

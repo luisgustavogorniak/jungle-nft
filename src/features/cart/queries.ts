@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cartApi } from '@/api/commerce'
 
 export const cartKeys = {
@@ -29,4 +29,10 @@ export function useAddToCart() {
       void queryClient.invalidateQueries({ queryKey: cartKeys.quotes })
     },
   })
+}
+
+/** Number of distinct items in the cart, for the header and tab bar badges. */
+export function useCartCount(): number {
+  const { data } = useQuery({ ...cartQueryOptions, select: (cart) => cart.items.length })
+  return data ?? 0
 }

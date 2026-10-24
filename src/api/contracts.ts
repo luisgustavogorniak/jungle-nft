@@ -76,7 +76,8 @@ export const nftSchema = z.object({
   category: categorySchema,
   network: networkSchema,
   creator: z.string(),
-  image: z.string(),
+  image: z.string(), // 960 px artwork
+  thumbnail: z.string(), // 480 px, cards and thumbnails
   price: ethAmount,
   oldPrice: ethAmount.nullable(),
   rarity: z.enum(['common', 'rare']),

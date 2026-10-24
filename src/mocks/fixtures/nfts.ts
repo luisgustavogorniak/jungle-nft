@@ -1,7 +1,7 @@
 import type { CategoryId, Edition, EditionId, NetworkId, Nft } from '@/api/contracts'
 
 /** Stored without a resolved URL: `imageFile` is mapped to an asset when serialized. */
-export type NftRecord = Omit<Nft, 'image'> & { imageFile: string }
+export type NftRecord = Omit<Nft, 'image' | 'thumbnail'> & { imageFile: string }
 
 type Seed = {
   number: string

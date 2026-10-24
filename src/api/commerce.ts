@@ -20,7 +20,8 @@ import { http, IDEMPOTENCY_HEADER } from './http'
 
 export const catalogApi = {
   async list(query: NftListQuery, signal?: AbortSignal): Promise<NftListResponse> {
-    const { data } = await http.get('/nfts', { params: query, signal })
+    // Arrays are sent as repeated keys (categories=a&categories=b), like the page URL.
+    const { data } = await http.get('/nfts', { params: query, signal, paramsSerializer: { indexes: null } })
     return nftListResponseSchema.parse(data)
   },
 

@@ -121,3 +121,28 @@ The client keeps one idempotency key per quote in `sessionStorage` (`idempotency
 ## Cart
 
 The cart lives on the (mock) server, keyed by owner: `user:<id>` when authenticated, `guest:<X-Guest-Id>` otherwise. On login or register, the visitor cart is merged into the user cart, capped by availability. Prices and availability are joined from the live catalog on every read. Totals always come from `POST /api/quote`, never from client-side math.
+
+## Catalog and layout (E4a)
+
+- **URL state.** `src/lib/search-params.ts` encodes search params as plain query strings (repeated keys for arrays) instead of TanStack's JSON encoding. `parseCatalogSearch` validates field by field with zod, so one bad value does not discard the rest. The router keeps unknown params next to validated ones, so `useCatalogSearch` sanitizes again.
+- **Query keys follow the filters** (`['nfts', 'list', query]`). The query `signal` aborts superseded requests, and `keepPreviousData` keeps the old results on screen (dimmed, `aria-busy`) while the next load. Out-of-order responses cannot overwrite a newer choice because the observer only follows the current key (covered by the `out-of-order` scenario test).
+- **Retries.** Catalog failures are transient (connection, timeout, 5xx), so they retry twice with backoff before showing the error panel (about 3 s of skeletons), then "Tentar novamente" refetches.
+- **Facets** count the NFTs matching every filter except their own group.
+- **Skeletons** reuse the card box model (aspect ratios), so loading does not shift the layout. Shimmer is disabled under `prefers-reduced-motion`.
+
+### Deviations from the Figma (E4a)
+
+| Figma | Implementation | Why |
+| --- | --- | --- |
+| Collections out of alphabetical order | Sorted A–Z (pt-BR) | Comment in the file asks for it |
+| Filters as a plain list | Checkboxes, combinable | Challenge requires combinable filters |
+| Price slider only | Slider + min/max inputs + Apply | Slider is imprecise on mobile (comment) |
+| Mobile infinite scroll | Numbered pagination | Page must live in the URL and survive refresh/history |
+| Central scan FAB in the tab bar | Omitted | No defined action (comment) |
+| Mobile filter drawer not drawn | Sheet with the same panel | Required for mobile |
+| Medallions W/C/D | Icons | Letters have no meaning (comment) |
+| Social brand icons | Text chips (FB, IG…) | lucide v1 dropped brand icons |
+| Prices with comma in the range label | Dot everywhere | Consistent with all other ETH values |
+| Tablet not drawn | Header fits at 768; filters become a drawer below 1280; 3 columns | Breakpoints suggested in the spec |
+| Mobile: search above the hero card | Hero first, then search | Pending polish |
+| Editorial pages, newsletter, footer help links | Honest "not part of the demo" toast | Out-of-scope actions must not look successful |
