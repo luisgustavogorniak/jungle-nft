@@ -213,6 +213,20 @@ The cart lives on the (mock) server, keyed by owner: `user:<id>` when authentica
 - **Mobile sem frame:** uma coluna. A sidebar vira abas "Dados do perfil | Carteiras" no topo (a tab bar inferior continua), formulários em coluna única e "Sair" no fim da página, como nas outras telas mobile.
 - **Nome ENS:** campo único com o nome completo (`nome.eth`), em vez de select ".eth" + input. É opcional (o contrato aceita `null`); no formulário de carteira continua obrigatório.
 - **Apelido da carteira:** opcional no perfil, pelo mesmo motivo.
-- **Senha:** sem o ícone de olho (os campos de senha do login e do cadastro também não têm).
+- **Senha:** o olho de mostrar/ocultar foi adicionado na E9, em todos os campos de senha (ver "E9: testes").
 - **"Igual à carteira principal":** checkbox em vez de rádio, porque pode ser desmarcado; ao marcar, copia os dados da principal para o formulário.
 - **Salvar:** o perfil e a troca de senha têm botões próprios ("Salvar" e "Alterar senha"), para o erro de um não bloquear o outro.
+
+## E9: testes
+
+- **Toggle de senha:** o `TextField` detecta `type="password"` e desenha o botão de olho dentro do campo, com `aria-label` ("Mostrar senha"/"Ocultar senha") e `aria-pressed`. Login, cadastro e troca de senha herdam sem mudar as telas. O ícone segue o Figma: olho riscado enquanto a senha está oculta. Cada campo tem seu próprio estado, então revelar um não revela os outros.
+- **Expiração com token vencido é 401, não visitante:** `optionalUser` (mock) devolvia `null` para token expirado, e o carrinho/cotação respondiam como se o usuário fosse visitante, com carrinho vazio e sem redirecionar ao login. Agora só a ausência de token é visitante; token vencido ou desconhecido responde 401 e dispara o fluxo de expiração (redirect para o login com `reason=expired`, contexto preservado). Encontrado pelo teste de expiração no checkout.
+- **Controles de mock para eventos:** `replayLastEvent()` reentrega o último evento (mesmo `eventId`) e `emitStaleNftUpdate()` entrega um estado antigo (versão menor, `eventId` novo, registro intacto). Os dois passam pelo servidor do binding, então o caminho continua sendo o `socket.io-client`. O `eventId` novo no evento antigo é de propósito: assim só a checagem de versão pode rejeitá-lo, e não a deduplicação por `eventId`.
+- **Como o teste detecta efeito repetido:** cada anúncio tem um `id` crescente. O teste dispensa o aviso, reenvia o evento e confirma que o aviso não volta. Um evento realmente novo ainda aparece (controle positivo).
+- **Reset por teste:** `openFresh` (`?mock-reset&scenario=`) faz o papel de fixture de reset, e cada teste tem um contexto de navegador novo. Não há fixture customizada a mais.
+- **Regressão visual:** `e2e/visual.spec.ts` (tag `@visual`) cobre início, detalhe, carrinho e pagamento, desktop e mobile. Baselines versionadas **sem sufixo de plataforma** (`snapshotPathTemplate`), tolerância de 2% (`maxDiffPixelRatio`) e `threshold: 0.2`. As fontes são empacotadas, então o que muda entre sistemas é só a rasterização. Dados estáveis: reset, cenário `default`, `page.clock` com data fixa (os timers continuam correndo, senão o MSW não responderia), animações desligadas, fontes e imagens carregadas (as `loading="lazy"` viram `eager` antes da captura de página inteira).
+- **O que a regressão visual não garante:** as baselines foram geradas no Windows 11. A tolerância só foi exercida ali; em macOS/Linux a portabilidade é esperada, não verificada. O README explica como regenerar a baseline local (`npm run test:e2e:visual:update`). Um deslocamento de 1–2 px num elemento pequeno pode passar dentro dos 2%.
+- **Foco do `TabsContent`:** o painel da aba do catálogo recebe foco (Radix, `tabindex=0`) mas tinha `outline-none` sem anel. Corrigido em `ui/tabs.tsx` com `focus-visible:ring-3`.
+
+### Pendência conhecida (E9)
+- **`DetailSkeleton` não reserva o mesmo espaço do detalhe carregado.** Medido no desktop: o skeleton da imagem fica em x=120, y=128, 444 px e a imagem real em x=260, y=174, 412 px (o skeleton não tem a coluna de miniaturas nem o breadcrumb). No mobile a diferença é de 8 px em y e 5 px de largura. O enunciado pede que o skeleton preserve as dimensões do conteúdo. Fica registrado para ajuste do `DetailSkeleton` (grid `[100px_444px_1fr]` e breadcrumb no desktop).

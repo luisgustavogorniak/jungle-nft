@@ -7,7 +7,19 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
+  // One baseline per project, shared by every OS: no `-win32`/`-linux`/`-darwin` suffix, so a
+  // checkout on another platform compares against the committed images instead of finding none.
+  snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{projectName}/{arg}{ext}',
+  expect: {
+    toHaveScreenshot: {
+      // Fonts are bundled, so what changes between systems is rasterization (antialiasing,
+      // hinting). A small tolerance absorbs it; a missing section or a broken layout still fails.
+      maxDiffPixelRatio: 0.02,
+      threshold: 0.2,
+      animations: 'disabled',
+    },
+  },
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: 'retain-on-failure',
