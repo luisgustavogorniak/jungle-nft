@@ -56,13 +56,24 @@ function NftDetailPage() {
 
 function DetailSkeleton() {
   return (
-    <main role="status" aria-label="Carregando NFT">
-      <Container className="grid gap-6 py-6 md:grid-cols-[auto_1fr] md:py-10">
-        <Skeleton className="aspect-square w-full rounded-3xl md:size-[444px]" />
-        <div className="grid content-start gap-4">
-          <Skeleton className="h-8 w-2/3" />
-          <Skeleton className="h-6 w-1/4" />
-          <Skeleton className="h-20 w-full" />
+    // Same grid, paddings and image box as NftDetail, so the artwork does not move when the data arrives.
+    <main role="status" aria-label="Carregando NFT" className="pb-44 md:pb-0">
+      <Container className="grid gap-6 md:py-6">
+        <Skeleton className="hidden h-[22px] w-40 md:block" />
+        <div className="grid gap-6 md:grid-cols-[100px_444px_1fr] md:gap-6">
+          <div className="hidden content-start gap-4 md:grid">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="size-[100px] rounded-lg" />
+            ))}
+          </div>
+          <div className="mt-4 md:mt-0 md:p-4">
+            <Skeleton className="aspect-[361/356] w-full rounded-3xl md:aspect-square" />
+          </div>
+          <div className="grid content-start gap-4">
+            <Skeleton className="h-8 w-2/3" />
+            <Skeleton className="h-6 w-1/4" />
+            <Skeleton className="h-20 w-full" />
+          </div>
         </div>
       </Container>
     </main>
