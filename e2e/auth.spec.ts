@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { expectSignedIn, expectSignedOut, login, logout, mockControls, openFresh, openProfile, users } from './support/mock'
+import { expectSignedIn, expectSignedOut, login, logout, openFresh, users } from './support/mock'
 
 test.describe('account and session', () => {
   test('logs in, survives a refresh and logs out', async ({ page }) => {
@@ -101,8 +101,12 @@ test.describe('account and session', () => {
     await login(page, users.nova)
     await expectSignedIn(page, users.nova.displayName)
 
-    await mockControls(page, 'expireSessions')
-    await openProfile(page, users.nova.displayName)
+    // Expire and navigate in the same tick: a background request (cart, orders) could otherwise be
+    // the first to get the 401 and redirect from "/" before the click, which is a valid but different run.
+    await page.getByRole('link', { name: new RegExp(users.nova.displayName) }).evaluate((link) => {
+      ;(window as unknown as { __kurioMock: { expireSessions: () => void } }).__kurioMock.expireSessions()
+      ;(link as HTMLAnchorElement).click()
+    })
 
     await expect(page).toHaveURL(/\/login\?.*redirect=%2Fprofile.*reason=expired/)
     await expect(page.getByRole('status').filter({ hasText: 'Sua sessão expirou' })).toBeVisible()
