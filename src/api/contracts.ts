@@ -21,6 +21,7 @@ export const errorCodes = [
   'IDEMPOTENCY_CONFLICT',
   'WALLET_REJECTED',
   'SERVICE_UNAVAILABLE',
+  'STORAGE_FULL',
   'INTERNAL_ERROR',
 ] as const
 export const errorCodeSchema = z.enum(errorCodes)
@@ -156,14 +157,37 @@ export const registerRequestSchema = z.object({
 })
 export type RegisterRequest = z.infer<typeof registerRequestSchema>
 
-export const updateProfileRequestSchema = userSchema
-  .pick({ username: true, displayName: true, email: true, avatarUrl: true, ensName: true, walletNickname: true })
-  .partial()
+/** Small WebP/PNG/JPEG data URL: the mock keeps the avatar inside the persisted database. */
+export const AVATAR_MAX_LENGTH = 100_000
+const ensName = /^[a-z0-9-]+(\.[a-z0-9-]+)*\.eth$/i
+const avatarDataUrl = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/
+
+export const profileFieldsSchema = z.object({
+  username: z
+    .string()
+    .min(3, 'Use pelo menos 3 caracteres')
+    .max(30, 'Use no máximo 30 caracteres')
+    .regex(/^[a-z0-9_.]+$/i, 'Use apenas letras, números, ponto e sublinhado'),
+  displayName: z.string().trim().min(1, 'Informe o nome de exibição').max(60, 'Use no máximo 60 caracteres'),
+  email: z.email('Informe um e-mail válido'),
+  avatarUrl: z
+    .string()
+    .regex(avatarDataUrl, 'Imagem inválida')
+    .max(AVATAR_MAX_LENGTH, 'Imagem grande demais')
+    .nullable(),
+  ensName: z
+    .string()
+    .regex(ensName, 'Use um nome terminado em .eth')
+    .nullable(),
+  walletNickname: z.string().trim().min(1, 'Informe o apelido').max(40, 'Use no máximo 40 caracteres').nullable(),
+})
+
+export const updateProfileRequestSchema = profileFieldsSchema.partial()
 export type UpdateProfileRequest = z.infer<typeof updateProfileRequestSchema>
 
 export const changePasswordRequestSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8),
+  currentPassword: z.string().min(1, 'Informe a senha atual'),
+  newPassword: z.string().min(8, 'A senha precisa ter pelo menos 8 caracteres'),
 })
 export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>
 
@@ -173,23 +197,31 @@ export const walletProviders = ['metamask', 'walletconnect', 'coinbase'] as cons
 export const walletProviderSchema = z.enum(walletProviders)
 export type WalletProvider = z.infer<typeof walletProviderSchema>
 
+const walletAddress = /^0x[a-fA-F0-9]{40}$/
+export const isAddressOrEns = (value: string) => walletAddress.test(value) || ensName.test(value)
+
+const requiredText = z.string().trim().min(1, 'Campo obrigatório').max(60, 'Use no máximo 60 caracteres')
+
 export const walletInputSchema = z.object({
-  displayName: z.string().min(1),
-  nickname: z.string().min(1),
+  displayName: requiredText,
+  nickname: requiredText,
   network: networkSchema,
-  profileName: z.string().min(1),
-  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid wallet address'),
-  secondaryAddress: z.string().nullable(),
+  profileName: requiredText,
+  address: z.string().regex(walletAddress, 'Use um endereço 0x com 40 caracteres hexadecimais'),
+  secondaryAddress: z.string().refine(isAddressOrEns, 'Use um endereço 0x ou um nome .eth').nullable(),
   provider: walletProviderSchema,
-  referralCode: z.string().min(1),
-  email: z.email(),
-  ensName: z.string().min(1),
+  referralCode: z
+    .string()
+    .regex(/^[A-Z0-9-]{4,20}$/, 'Use de 4 a 20 letras maiúsculas, números ou hífens'),
+  email: z.email('Informe um e-mail válido'),
+  ensName: z.string().regex(ensName, 'Use um nome terminado em .eth'),
 })
 export type WalletInput = z.infer<typeof walletInputSchema>
+export type WalletSlot = 'primary' | 'secondary'
 
 export const walletSchema = walletInputSchema.extend({
   id: z.string(),
-  slot: z.enum(['primary', 'secondary']),
+  slot: z.enum(['primary', 'secondary'] satisfies WalletSlot[]),
   updatedAt: z.iso.datetime(),
 })
 export type Wallet = z.infer<typeof walletSchema>

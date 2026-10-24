@@ -59,7 +59,8 @@ export async function openProfile(page: Page, displayName: string) {
 /** Header button on desktop, profile page button on mobile (no header there). */
 export async function logout(page: Page, displayName: string) {
   if (isMobile(page)) await openProfile(page, displayName)
-  await page.getByRole('button', { name: 'Sair' }).click()
+  // The profile page also has "Sair" in its sidebar (desktop): any of them logs out.
+  await page.getByRole('button', { name: 'Sair' }).first().click()
 }
 
 export async function openCart(page: Page) {

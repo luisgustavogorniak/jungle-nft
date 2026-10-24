@@ -64,7 +64,7 @@ test.describe('account and session', () => {
     await login(page, users.nova)
 
     await expect(page).toHaveURL('/profile')
-    await expect(page.getByTestId('profile')).toContainText(users.nova.email)
+    await expect(page.getByLabel('E-mail')).toHaveValue(users.nova.email)
   })
 
   test('expired session redirects to login keeping the context to resume', async ({ page }) => {
@@ -86,14 +86,14 @@ test.describe('account and session', () => {
   test('switching users never shows data from the previous one', async ({ page }) => {
     await openFresh(page, '/login?redirect=%2Fprofile')
     await login(page, users.nova)
-    await expect(page.getByTestId('profile')).toContainText(users.nova.email)
+    await expect(page.getByLabel('E-mail')).toHaveValue(users.nova.email)
 
     // Navigating right after the click: the logout must not depend on the request finishing.
     await logout(page, users.nova.displayName)
     await page.goto('/login?redirect=%2Fprofile')
     await login(page, users.leo)
 
-    await expect(page.getByTestId('profile')).toContainText(users.leo.email)
+    await expect(page.getByLabel('E-mail')).toHaveValue(users.leo.email)
     await expect(page.getByText(users.nova.email)).toHaveCount(0)
   })
 

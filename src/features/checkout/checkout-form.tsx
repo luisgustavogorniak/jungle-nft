@@ -435,8 +435,8 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
           <TextField label="Nome ENS" readOnly value={wallet.ensName} className="text-copy" />
           <p className="text-xs text-copy md:col-span-2">
             Os dados da carteira vêm do cadastro em{' '}
-            <Link to="/profile" className="text-highlight underline">
-              Perfil
+            <Link to="/profile/wallets" className="text-highlight underline">
+              Carteiras
             </Link>
             .
           </p>

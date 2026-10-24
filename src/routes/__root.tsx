@@ -52,7 +52,8 @@ function RootLayout() {
       <div id="main" tabIndex={-1} className={cn('outline-none', hasTabBar(pathname) && 'pb-28 md:pb-0')}>
         <Outlet />
       </div>
-      <SiteFooter />
+      {/* Profile and wallets have no footer in the layout (D8/D9). */}
+      {!pathname.startsWith('/profile') && <SiteFooter />}
       <MobileTabBar />
       <Toaster />
       <LiveAnnouncer />

@@ -13,6 +13,10 @@ test.describe('checkout', () => {
   test('validates the collector data and shows a review before sending', async ({ page }) => {
     await checkoutAsNova(page)
     await expectPrimaryWallet(page)
+    // The desktop form says where the wallet data comes from (mobile shows wallet cards instead).
+    if ((page.viewportSize()?.width ?? 0) >= 768) {
+      await expect(page.getByRole('link', { name: 'Carteiras' })).toHaveAttribute('href', '/profile/wallets')
+    }
 
     await page.getByLabel('Nome de exibição').fill('')
     await page.getByRole('button', { name: 'Conectar carteira' }).click()

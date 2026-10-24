@@ -59,6 +59,9 @@ async function seed(): Promise<DbState> {
 }
 
 let state: DbState | null = null
+/** Last JSON written to localStorage: what a failed save rolls back to. */
+let persisted: string | null = null
+let storageFull = false
 
 export function db(): DbState {
   if (!state) throw new Error('Mock database not initialized: call initDb() first')
@@ -68,18 +71,36 @@ export function db(): DbState {
 /** Persists the current state. Call after every mutation. */
 export function saveDb() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(db()))
-  } catch {
-    // Storage full or unavailable: state stays in memory for this tab.
+    const json = JSON.stringify(db())
+    localStorage.setItem(STORAGE_KEY, json)
+    persisted = json
+    storageFull = false
+  } catch (error) {
+    // Other failures (storage unavailable): state stays in memory for this tab.
+    if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.code === 22)) {
+      storageFull = true
+    }
   }
+}
+
+/**
+ * Called after each request: when its save hit the storage quota, the change is
+ * undone (back to the last persisted state) so memory and storage never diverge.
+ */
+export function rollbackIfStorageFull(): boolean {
+  if (!storageFull) return false
+  storageFull = false
+  if (persisted) state = JSON.parse(persisted) as DbState
+  return true
 }
 
 export async function initDb(): Promise<void> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    const persisted = raw ? (JSON.parse(raw) as DbState) : null
-    if (persisted?.schemaVersion === SCHEMA_VERSION) {
-      state = persisted
+    const stored = raw ? (JSON.parse(raw) as DbState) : null
+    if (stored?.schemaVersion === SCHEMA_VERSION) {
+      state = stored
+      persisted = raw
       return
     }
   } catch {

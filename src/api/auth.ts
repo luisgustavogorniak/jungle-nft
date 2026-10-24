@@ -1,9 +1,11 @@
 import {
   sessionSchema,
   userSchema,
+  type ChangePasswordRequest,
   type LoginRequest,
   type RegisterRequest,
   type Session,
+  type UpdateProfileRequest,
   type User,
 } from './contracts'
 import { http } from './http'
@@ -36,5 +38,14 @@ export const profileApi = {
   async get(signal?: AbortSignal): Promise<User> {
     const { data } = await http.get('/profile', { signal })
     return userSchema.parse(data)
+  },
+
+  async update(body: UpdateProfileRequest): Promise<User> {
+    const { data } = await http.patch('/profile', body)
+    return userSchema.parse(data)
+  },
+
+  async changePassword(body: ChangePasswordRequest): Promise<void> {
+    await http.post('/profile/password', body)
   },
 }

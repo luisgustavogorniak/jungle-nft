@@ -198,3 +198,21 @@ The cart lives on the (mock) server, keyed by owner: `user:<id>` when authentica
 - **O socket é carregado depois do `worker.start()`:** o `engine.io-client` guarda o construtor `WebSocket` quando o módulo é avaliado. Importar o socket no `browser.ts` antes do MSW iniciar fazia o cliente usar o WebSocket nativo e furar o mock. O probe usa `import()` dinâmico depois do start.
 - **`settlePendingOrders()`:** liquida os pendentes na hora, para os testes não dependerem de timer.
 
+
+## E8: perfil e carteiras
+
+- **Rotas:** `/profile` é um layout (`AccountLayout`) com duas páginas filhas, `/profile` (dados, avatar e senha) e `/profile/wallets`. No desktop, a sidebar do D8/D9. Os itens sem tela (Atividade, Ofertas, Arquivos baixados, Suporte) usam `OutOfScopeLink`; "Lista de interesse" leva a `/favorites`. Perfil e Carteiras não têm footer, como no layout.
+- **Contratos:** `profileFieldsSchema` e `walletInputSchema` são a única fonte das regras; os formulários derivam deles (`pick`/`extend`) e o mock valida o mesmo schema. Isso garante que a mensagem de erro do servidor seja igual à do cliente.
+- **Erros da API nos campos:** `applyServerErrors` mapeia `fieldErrors` para os campos (`username`/`email` duplicados, `currentPassword` errada, `address` já usado por outra conta). Erros sem campo vão para `root.server`.
+- **Avatar:** o arquivo (PNG/JPG/WebP, até 5 MB) é recortado em quadrado e redimensionado para 256×256 via canvas, codificado em WebP (JPEG se o navegador não gera WebP). O data URL fica com poucos KB e o servidor recusa mais de 100 000 caracteres.
+- **localStorage cheio:** `saveDb()` marca `QuotaExceededError`; ao fim da requisição, `withScenario` desfaz a mudança (volta ao último estado persistido) e responde `STORAGE_FULL` (507) com mensagem clara. Memória e storage nunca divergem.
+- **Cache:** salvar o perfil atualiza `['profile', id]` e a sessão (o header lê o nome dela). Salvar carteira invalida `['wallets', id]`, a mesma chave do checkout.
+- **Carteiras:** um usuário tem uma principal e uma secundária (`PUT /wallets/:slot`). Um endereço não pode pertencer a duas contas; principal e secundária da mesma conta podem repetir o endereço ("Igual à carteira principal").
+
+### Desvios do Figma (E8)
+- **Mobile sem frame:** uma coluna. A sidebar vira abas "Dados do perfil | Carteiras" no topo (a tab bar inferior continua), formulários em coluna única e "Sair" no fim da página, como nas outras telas mobile.
+- **Nome ENS:** campo único com o nome completo (`nome.eth`), em vez de select ".eth" + input. É opcional (o contrato aceita `null`); no formulário de carteira continua obrigatório.
+- **Apelido da carteira:** opcional no perfil, pelo mesmo motivo.
+- **Senha:** sem o ícone de olho (os campos de senha do login e do cadastro também não têm).
+- **"Igual à carteira principal":** checkbox em vez de rádio, porque pode ser desmarcado; ao marcar, copia os dados da principal para o formulário.
+- **Salvar:** o perfil e a troca de senha têm botões próprios ("Salvar" e "Alterar senha"), para o erro de um não bloquear o outro.

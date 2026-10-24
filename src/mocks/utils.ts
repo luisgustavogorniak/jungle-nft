@@ -2,7 +2,7 @@ import { delay, HttpResponse, type DefaultBodyType, type HttpResponseResolver, t
 import type { ApiErrorBody, ErrorCode, Nft } from '@/api/contracts'
 import { GUEST_HEADER } from '@/api/http'
 import type { z } from 'zod'
-import { db, saveDb, type SessionRecord } from './db'
+import { db, rollbackIfStorageFull, saveDb, type SessionRecord } from './db'
 import type { NftRecord } from './fixtures/nfts'
 import type { UserRecord } from './fixtures/users'
 import { resolveNftImage } from './images'
@@ -22,6 +22,7 @@ const statusByCode: Record<ErrorCode, number> = {
   IDEMPOTENCY_CONFLICT: 409,
   WALLET_REJECTED: 409,
   SERVICE_UNAVAILABLE: 503,
+  STORAGE_FULL: 507,
   INTERNAL_ERROR: 500,
 }
 
@@ -52,7 +53,14 @@ export function withScenario<
     if (failure === 'timeout') await delay('infinite')
     if (failure === 500) return errorResponse('INTERNAL_ERROR', 'Erro inesperado no servidor')
     if (failure === 503) return errorResponse('SERVICE_UNAVAILABLE', 'Serviço temporariamente indisponível')
-    return resolver(info)
+    const response = await resolver(info)
+    if (rollbackIfStorageFull()) {
+      return errorResponse(
+        'STORAGE_FULL',
+        'O armazenamento do navegador está cheio e a alteração não foi salva. Libere espaço (por exemplo com ?mock-reset) e tente de novo.',
+      )
+    }
+    return response
   }
 }
 

@@ -20,6 +20,8 @@ import {
   type Wallet,
   type WalletConnection,
   type WalletConnectionRequest,
+  type WalletInput,
+  type WalletSlot,
 } from './contracts'
 import { http, IDEMPOTENCY_HEADER } from './http'
 
@@ -67,6 +69,12 @@ export const walletsApi = {
   async list(signal?: AbortSignal): Promise<Wallet[]> {
     const { data } = await http.get('/wallets', { signal })
     return z.array(walletSchema).parse(data)
+  },
+
+  /** Creates or replaces the wallet of a slot (a user has one primary and one secondary). */
+  async save(slot: WalletSlot, body: WalletInput): Promise<Wallet> {
+    const { data } = await http.put(`/wallets/${slot}`, body)
+    return walletSchema.parse(data)
   },
 
   async connect(walletId: string, body: WalletConnectionRequest): Promise<WalletConnection> {

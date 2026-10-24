@@ -1,6 +1,12 @@
 import { http, HttpResponse } from 'msw'
-import { walletConnectionRequestSchema, type WalletConnection } from '@/api/contracts'
-import { db } from '../db'
+import {
+  walletConnectionRequestSchema,
+  walletInputSchema,
+  type Wallet,
+  type WalletConnection,
+  type WalletSlot,
+} from '@/api/contracts'
+import { db, saveDb } from '../db'
 import { getScenario } from '../scenarios'
 import { errorResponse, parseBody, requireUser, withScenario } from '../utils'
 
@@ -8,6 +14,42 @@ export const walletHandlers = [
   http.get(
     '/api/wallets',
     withScenario('wallets', ({ request }) => HttpResponse.json(db().wallets[requireUser(request).id] ?? [])),
+  ),
+
+  /** Creates or replaces the wallet of a slot. An address can belong to only one account. */
+  http.put(
+    '/api/wallets/:slot',
+    withScenario('wallets', async ({ request, params }) => {
+      const user = requireUser(request)
+      if (params.slot !== 'primary' && params.slot !== 'secondary') {
+        return errorResponse('NOT_FOUND', 'Carteira não encontrada')
+      }
+      const slot: WalletSlot = params.slot
+      const body = await parseBody(request, walletInputSchema)
+
+      const takenByOther = Object.entries(db().wallets).some(
+        ([ownerId, wallets]) =>
+          ownerId !== user.id && wallets.some((other) => other.address.toLowerCase() === body.address.toLowerCase()),
+      )
+      if (takenByOther) {
+        return errorResponse('CONFLICT', 'Este endereço já está cadastrado em outra conta', {
+          fieldErrors: { address: 'Este endereço já está cadastrado em outra conta' },
+        })
+      }
+
+      const owned = (db().wallets[user.id] ??= [])
+      const existing = owned.find((candidate) => candidate.slot === slot)
+      const wallet: Wallet = {
+        ...body,
+        id: existing?.id ?? `wallet-${crypto.randomUUID()}`,
+        slot,
+        updatedAt: new Date().toISOString(),
+      }
+      if (existing) owned[owned.indexOf(existing)] = wallet
+      else owned.push(wallet)
+      saveDb()
+      return HttpResponse.json(wallet)
+    }),
   ),
 
   /** Simulates the provider prompt: the user approves (default) or refuses (`wallet-rejected`). */
