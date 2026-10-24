@@ -44,6 +44,16 @@ export const cartApi = {
     return cartSchema.parse(data)
   },
 
+  async updateItem(nftId: string, editionId: string, quantity: number): Promise<Cart> {
+    const { data } = await http.patch(`/cart/items/${encodeURIComponent(nftId)}/${editionId}`, { quantity })
+    return cartSchema.parse(data)
+  },
+
+  async removeItem(nftId: string, editionId: string): Promise<Cart> {
+    const { data } = await http.delete(`/cart/items/${encodeURIComponent(nftId)}/${editionId}`)
+    return cartSchema.parse(data)
+  },
+
   async quote(couponCode: string | null, signal?: AbortSignal): Promise<Quote> {
     const { data } = await http.post('/quote', { couponCode }, { signal })
     return quoteSchema.parse(data)

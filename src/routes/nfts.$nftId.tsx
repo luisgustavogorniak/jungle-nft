@@ -1,18 +1,19 @@
 import { useState } from 'react'
 import { createFileRoute, Link, useCanGoBack, useNavigate, useRouter } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Minus, Plus, ShoppingCart, Star } from 'lucide-react'
+import { ChevronLeft, ShoppingCart, Star } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from 'cn'
 import type { Edition, EditionId, Nft, NetworkId } from '@/api/contracts'
 import { isApiError } from '@/api/http'
 import { Container } from '@/components/layout/container'
+import { MAX_QUANTITY, QuantityStepper } from '@/components/quantity-stepper'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAddToCart } from '@/features/cart/queries'
-import { NftCard } from '@/features/catalog/nft-card'
-import { nftListQueryOptions, nftQueryOptions } from '@/features/catalog/queries'
+import { NftShelf } from '@/features/catalog/nft-shelf'
+import { nftQueryOptions } from '@/features/catalog/queries'
 import { FavoriteButton } from '@/features/favorites/favorite-button'
 import { errorMessage } from '@/lib/form-errors'
 import { formatEth } from '@/lib/eth'
@@ -22,7 +23,6 @@ export const Route = createFileRoute('/nfts/$nftId')({
 })
 
 const networkLabels: Record<NetworkId, string> = { ethereum: 'Ethereum', polygon: 'Polygon', solana: 'Solana' }
-const MAX_QUANTITY = 10
 
 function NftDetailPage() {
   const { nftId } = Route.useParams()
@@ -118,26 +118,6 @@ function EditionChips({
         })}
       </div>
     </fieldset>
-  )
-}
-
-function Stepper({ value, max, onChange, disabled }: { value: number; max: number; onChange: (value: number) => void; disabled: boolean }) {
-  const button = 'size-6 rounded-full bg-secondary text-foreground md:size-8 md:bg-primary md:text-primary-foreground md:shadow-card [&_svg]:size-4'
-  return (
-    <div role="group" aria-label="Quantidade" className="flex items-center gap-3 md:gap-4">
-      <span className="text-sm font-bold md:hidden" aria-hidden="true">
-        Qtd.
-      </span>
-      <Button type="button" size="icon-xs" className={button} aria-label="Diminuir quantidade" disabled={disabled || value <= 1} onClick={() => onChange(value - 1)}>
-        <Minus />
-      </Button>
-      <output aria-live="polite" aria-label="Quantidade selecionada" className="min-w-4 text-center font-bold">
-        {value}
-      </output>
-      <Button type="button" size="icon-xs" className={button} aria-label="Aumentar quantidade" disabled={disabled || value >= max} onClick={() => onChange(value + 1)}>
-        <Plus />
-      </Button>
-    </div>
   )
 }
 
@@ -263,7 +243,7 @@ function NftDetail({ nft }: { nft: Nft }) {
             {/* Mobile: fixed buy bar. Desktop: a row below the edition. */}
             <div className="fixed inset-x-0 bottom-0 z-40 grid gap-4 rounded-t-[40px] bg-card px-6 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-card md:static md:z-auto md:flex md:items-center md:justify-between md:rounded-none md:bg-transparent md:p-0 md:shadow-none">
               <div className="flex items-center justify-between md:gap-6">
-                <Stepper value={qty} max={max} disabled={!selected} onChange={setQuantity} />
+                <QuantityStepper value={qty} max={max} caption disabled={!selected} onChange={setQuantity} />
                 <p className="text-xl font-bold text-highlight md:hidden">{formatEth(nft.price)}</p>
               </div>
               <div className="flex items-center gap-3">
@@ -318,7 +298,7 @@ function NftDetail({ nft }: { nft: Nft }) {
         </div>
 
         <DetailTabs nft={nft} />
-        <MoreFromCollection nft={nft} />
+        <NftShelf title="Mais desta coleção" nft={nft} />
       </Container>
     </main>
   )
@@ -357,24 +337,3 @@ function DetailTabs({ nft }: { nft: Nft }) {
   )
 }
 
-function MoreFromCollection({ nft }: { nft: Nft }) {
-  // Same category first; other popular NFTs complete the row when the category is small.
-  const { data } = useQuery(nftListQueryOptions({ sort: 'popular', pageSize: 24 }))
-  const others = (data?.items ?? []).filter((item) => item.id !== nft.id)
-  const related = [...others.filter((item) => item.category === nft.category), ...others.filter((item) => item.category !== nft.category)].slice(0, 5)
-  if (related.length === 0) return null
-  return (
-    <section aria-labelledby="related-title" className="hidden gap-6 pt-6 md:grid">
-      <h2 id="related-title" className="border-b border-border pb-2 text-[17px] font-bold text-highlight">
-        Mais desta coleção
-      </h2>
-      <ul className="grid grid-cols-5 gap-4">
-        {related.map((item) => (
-          <li key={item.id}>
-            <NftCard nft={item} />
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}

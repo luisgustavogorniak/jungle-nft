@@ -3,6 +3,7 @@ import { authApi } from '@/api/auth'
 import type { Session } from '@/api/contracts'
 import { getToken, setToken } from '@/api/credentials'
 import { isApiError } from '@/api/http'
+import { setCoupon } from '@/features/cart/coupon'
 import { socket } from '@/realtime/socket'
 
 export const sessionQueryKey = ['session'] as const
@@ -48,6 +49,7 @@ export function startSession(queryClient: QueryClient, session: Session) {
 export function endSession(queryClient: QueryClient) {
   setToken(null)
   socket.disconnect()
+  setCoupon(null)
   dropCachedData(queryClient)
   queryClient.setQueryData(sessionQueryKey, null)
 }

@@ -1,6 +1,8 @@
-import { createRootRouteWithContext, Link, Outlet } from '@tanstack/react-router'
+import { createRootRouteWithContext, Link, Outlet, useRouterState } from '@tanstack/react-router'
 import type { QueryClient } from '@tanstack/react-query'
+import { cn } from 'cn'
 import { MobileTabBar } from '@/components/layout/mobile-tab-bar'
+import { hasTabBar } from '@/components/layout/tab-bar-visibility'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
 import { Container } from '@/components/layout/container'
@@ -35,6 +37,7 @@ function NotFound() {
 function RootLayout() {
   const { user } = useSession()
   useRealtime(user?.id ?? null)
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
 
   return (
     <>
@@ -45,7 +48,7 @@ function RootLayout() {
         Pular para o conteúdo
       </a>
       <SiteHeader />
-      <div id="main" tabIndex={-1} className="pb-28 outline-none md:pb-0">
+      <div id="main" tabIndex={-1} className={cn('outline-none', hasTabBar(pathname) && 'pb-28 md:pb-0')}>
         <Outlet />
       </div>
       <SiteFooter />

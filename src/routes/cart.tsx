@@ -1,65 +1,160 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useCanGoBack, useNavigate, useRouter } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { ChevronLeft } from 'lucide-react'
+import { Container } from '@/components/layout/container'
 import { Button } from '@/components/ui/button'
-import { OrderSummary } from '@/features/cart/order-summary'
-import { cartQueryOptions, quoteQueryOptions } from '@/features/cart/queries'
+import { Skeleton } from '@/components/ui/skeleton'
+import { CartRow, ROW_COLUMNS } from '@/features/cart/cart-row'
+import { CouponForm } from '@/features/cart/coupon-form'
+import { OrderSummary, OrderSummarySkeleton } from '@/features/cart/order-summary'
+import { cartQueryOptions, useCartQuote } from '@/features/cart/queries'
+import { NftShelf } from '@/features/catalog/nft-shelf'
 import { errorMessage } from '@/lib/form-errors'
-import { formatEth, mulEth } from '@/lib/eth'
 
 export const Route = createFileRoute('/cart')({
   component: CartPage,
 })
 
-// Thin slice: read-only cart. Quantity editing, removal and coupon come in E5.
 function CartPage() {
+  const router = useRouter()
+  const canGoBack = useCanGoBack()
+  const navigate = useNavigate()
   const cart = useQuery(cartQueryOptions)
-  const hasItems = (cart.data?.items.length ?? 0) > 0
-  const quote = useQuery({ ...quoteQueryOptions(null), enabled: hasItems })
+  const items = cart.data?.items ?? []
+  const hasItems = items.length > 0
+  const quote = useCartQuote(hasItems)
+
+  const issues = quote.data?.issues ?? []
+  const issueFor = (nftId: string, editionId: string) =>
+    issues.find((issue) => issue.nftId === nftId && issue.editionId === editionId)?.message
+  // Totals of a stale quote (or one with problems) must not lead to checkout.
+  const blocked = quote.isPlaceholderData || issues.length > 0
 
   return (
-    <main className="grid gap-4 p-8">
-      <h1 className="text-2xl font-semibold">Carrinho de NFTs</h1>
-      {cart.isPending && <p role="status">Carregando carrinho…</p>}
-      {cart.isError && <p role="alert">{errorMessage(cart.error)}</p>}
-      {cart.data && !hasItems && (
-        <p>
-          Seu carrinho está vazio.{' '}
-          <Link to="/" className="underline">
-            Continuar explorando
+    <main>
+      <Container className="grid gap-6 py-4 md:gap-4 md:py-6">
+        <div className="grid grid-cols-[35px_1fr_35px] items-center md:block">
+          <Button
+            type="button"
+            variant="circle"
+            size="icon-xs"
+            aria-label="Voltar"
+            className="size-[35px]! px-0! md:hidden"
+            onClick={() => (canGoBack ? router.history.back() : void navigate({ to: '/' }))}
+          >
+            <ChevronLeft className="size-5" />
+          </Button>
+          <h1 className="text-center text-xl font-bold md:sr-only">Carrinho de NFTs</h1>
+        </div>
+        <nav aria-label="Você está em" className="hidden text-[15px] font-bold md:block">
+          <Link to="/" className="hover:text-highlight">
+            Início
           </Link>
-        </p>
-      )}
-      {hasItems && (
-        <>
-          <ul aria-label="Itens do carrinho" className="grid gap-2">
-            {cart.data!.items.map((item) => (
-              <li key={`${item.nftId}-${item.editionId}`} className="flex flex-wrap items-center gap-4 border p-2">
-                <img src={item.image} alt="" width={56} height={56} className="size-14 object-cover" />
-                <div className="grid">
-                  <span className="font-bold">{item.name}</span>
-                  <span className="text-sm">
-                    ID do token: {item.tokenId} · Edição: {item.editionLabel}
-                  </span>
-                </div>
-                <span>{formatEth(item.unitPrice)}</span>
-                <span>× {item.quantity}</span>
-                <span className="font-bold">{formatEth(mulEth(item.unitPrice, item.quantity))}</span>
-              </li>
-            ))}
-          </ul>
-          <section aria-labelledby="summary-title" className="grid max-w-sm gap-2">
-            <h2 id="summary-title" className="font-bold">
-              Resumo da carteira
-            </h2>
-            {quote.isPending && <p role="status">Calculando valores…</p>}
-            {quote.isError && <p role="alert">{errorMessage(quote.error)}</p>}
-            {quote.data && <OrderSummary quote={quote.data} />}
-            <Button asChild>
-              <Link to="/checkout">Conectar e finalizar</Link>
+          {' / '}
+          <Link to="/" hash="catalogo" className="hover:text-highlight">
+            Mercado
+          </Link>
+          {' / '}
+          <span aria-current="page">Carrinho</span>
+        </nav>
+
+        {cart.isPending && <CartSkeleton />}
+        {cart.isError && (
+          <div role="alert" className="grid justify-items-start gap-3 bg-card p-6">
+            <p className="font-bold">Não foi possível carregar o carrinho.</p>
+            <p className="text-copy">{errorMessage(cart.error)}</p>
+            <Button variant="outline" onClick={() => void cart.refetch()}>
+              Tentar novamente
             </Button>
-          </section>
-        </>
-      )}
+          </div>
+        )}
+        {cart.data && !hasItems && (
+          <div className="grid justify-items-start gap-3 bg-card p-6">
+            <p className="font-bold">Seu carrinho está vazio.</p>
+            <Button asChild variant="outline">
+              <Link to="/">Continuar explorando</Link>
+            </Button>
+          </div>
+        )}
+
+        {hasItems && (
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_332px] lg:gap-x-[86px] lg:gap-y-8">
+            <section aria-labelledby="items-title" className="grid content-start gap-3">
+              <h2 id="items-title" className="sr-only">
+                Itens do carrinho
+              </h2>
+              <div aria-hidden="true" className={`hidden ${ROW_COLUMNS} gap-x-4 border-b border-border pb-3 font-bold md:grid`}>
+                <span>NFTs</span>
+                <span>Preço</span>
+                <span>Edições</span>
+                <span>Total</span>
+                <span />
+              </div>
+              <ul aria-label="Itens do carrinho" className="grid gap-3 md:gap-3">
+                {items.map((item) => (
+                  <CartRow key={`${item.nftId}-${item.editionId}`} item={item} issue={issueFor(item.nftId, item.editionId)} />
+                ))}
+              </ul>
+            </section>
+
+            <section
+              aria-labelledby="summary-title"
+              className="grid content-start gap-5 max-md:-mx-6 max-md:rounded-t-[40px] max-md:bg-card max-md:px-6 max-md:pt-6 max-md:pb-8 max-md:shadow-card"
+            >
+              <h2 id="summary-title" className="border-b border-border pb-3 text-lg font-bold max-md:sr-only">
+                Resumo da carteira
+              </h2>
+              <CouponForm quote={quote.data} />
+              {quote.isPending && <OrderSummarySkeleton />}
+              {quote.isError && !quote.data && <p role="alert">{errorMessage(quote.error)}</p>}
+              {quote.data && <OrderSummary quote={quote.data} busy={quote.isPlaceholderData} />}
+              {blocked && issues.length > 0 && (
+                <p id="checkout-help" role="status" className="text-sm text-destructive">
+                  Ajuste ou remova os itens indisponíveis para continuar.
+                </p>
+              )}
+              {blocked ? (
+                <Button
+                  type="button"
+                  variant="pill"
+                  size="xl"
+                  disabled
+                  aria-describedby={issues.length > 0 ? 'checkout-help' : undefined}
+                  className="md:h-10 md:rounded-[3px] md:bg-primary md:bg-none"
+                >
+                  Conectar e finalizar
+                </Button>
+              ) : (
+                <Button asChild variant="pill" size="xl" className="md:h-10 md:rounded-[3px] md:bg-primary md:bg-none">
+                  <Link to="/checkout">Conectar e finalizar</Link>
+                </Button>
+              )}
+              <Link to="/" className="text-center text-highlight hover:underline max-md:hidden">
+                Continuar explorando
+              </Link>
+            </section>
+          </div>
+        )}
+
+        {hasItems && <NftShelf title="Colecionadores também viram" exclude={items.map((item) => item.nftId)} />}
+      </Container>
     </main>
+  )
+}
+
+/** Same boxes as rows and summary, so loading does not shift the layout. */
+function CartSkeleton() {
+  return (
+    <div role="status" aria-label="Carregando carrinho" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_332px] lg:gap-x-[86px]">
+      <div className="grid content-start gap-3">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-[100px] w-full rounded-[14px] md:h-[70px] md:rounded-none" />
+        ))}
+      </div>
+      <div className="grid content-start gap-4">
+        <Skeleton className="h-10 w-full" />
+        <OrderSummarySkeleton />
+      </div>
+    </div>
   )
 }

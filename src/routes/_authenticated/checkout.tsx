@@ -7,7 +7,7 @@ import { isApiError } from '@/api/http'
 import { TextField } from '@/components/text-field'
 import { Button } from '@/components/ui/button'
 import { OrderSummary } from '@/features/cart/order-summary'
-import { cartKeys, quoteQueryOptions } from '@/features/cart/queries'
+import { cartKeys, useCartQuote } from '@/features/cart/queries'
 import { idempotencyKeyFor, useCreateOrder } from '@/features/orders/queries'
 import { errorMessage } from '@/lib/form-errors'
 
@@ -28,7 +28,7 @@ function CheckoutPage() {
   const { session } = Route.useRouteContext()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const quote = useQuery(quoteQueryOptions(null))
+  const quote = useCartQuote()
   const wallets = useQuery({ queryKey: ['wallets', session.user.id], queryFn: ({ signal }) => walletsApi.list(signal) })
   const createOrder = useCreateOrder()
 

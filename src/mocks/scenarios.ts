@@ -73,6 +73,11 @@ export const scenarios = {
     latency: { min: 150, max: 450 },
     failures: { 'favorites.write': 500 },
   },
+  'cart-error': {
+    description: 'Changing or removing cart items fails with HTTP 500 (optimistic update and rollback).',
+    latency: { min: 150, max: 450 },
+    failures: { 'cart.write': 500 },
+  },
   'server-error': {
     description: 'Catalog requests fail with HTTP 500.',
     latency: { min: 100, max: 200 },

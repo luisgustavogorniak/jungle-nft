@@ -227,6 +227,8 @@ export const cartItemInputSchema = z.object({
 })
 export type CartItemInput = z.infer<typeof cartItemInputSchema>
 
+export const cartItemQuantitySchema = z.object({ quantity: z.number().int().positive() })
+
 export const quoteRequestSchema = z.object({ couponCode: z.string().nullable() })
 export type QuoteRequest = z.infer<typeof quoteRequestSchema>
 

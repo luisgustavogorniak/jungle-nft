@@ -151,3 +151,11 @@ The cart lives on the (mock) server, keyed by owner: `user:<id>` when authentica
 - **Edição pré-selecionada:** derivada (primeira com estoque, ou a escolha do usuário enquanto tiver estoque), não guardada em estado. Sem estoque: botões desabilitados com texto associado por `aria-describedby`.
 - **Detalhe mobile sem tab bar** (como no Figma): a barra de compra fixa a substitui, e o toast "adicionado" traz a ação "Ver carrinho".
 - **Desvios do Figma:** galeria repete a única arte da API; sem zoom nem "Compartilhar"; aba Avaliações com aviso (não desenhada); botão de carrinho também no desktop (o frame só tem COMPRAR).
+
+## E5: carrinho completo
+- **Contratos:** `PATCH /cart/items/:nftId/:editionId` (quantidade absoluta, 409 se acima do estoque) e `DELETE` idempotente. Cupom segue na cotação (`POST /quote`).
+- **Edição otimista com rollback** (`useCartEdit`): a linha muda na hora; em erro volta o snapshot e um toast explica; só a última edição em voo recarrega carrinho e cotação.
+- **Cupom:** só é guardado depois que a API o aceita (sessionStorage, compartilhado entre carrinho e checkout). Inválido/expirado mostra o motivo no campo; um cupom que expirar depois é removido com aviso (`useCartQuote`). Logout limpa.
+- **Totais** continuam vindo só da cotação; enquanto uma nova carrega, os valores anteriores ficam esmaecidos (`aria-busy`) e "Conectar e finalizar" fica desabilitado. Itens com problema de estoque aparecem na linha e bloqueiam a finalização.
+- **Visitante:** `guestId` já identificava o carrinho; o merge no login e a persistência no refresh têm teste E2E.
+- **Desvios do Figma:** lixeira na linha do nome no mobile (no frame ela sobrepõe o "+", como apontado nos comentários); tab bar escondida em carrinho/detalhe (o frame não a desenha); coluna "Edições" mostra o stepper e a edição vai sob o nome; steppers iguais nas duas larguras exceto o tamanho.
