@@ -6,12 +6,20 @@ import { demoFavorites, demoPassword, demoUsers, demoWallets, type UserRecord } 
 
 const STORAGE_KEY = 'kurio.mock.db'
 // Bump when the shape or the fixtures change: stale persisted state is discarded.
-const SCHEMA_VERSION = 2
+const SCHEMA_VERSION = 3
 
 export type SessionRecord = { token: string; userId: string; expiresAt: string }
 export type CartRecord = { items: CartItemInput[]; updatedAt: string }
 export type QuoteRecord = Quote & { ownerKey: string }
-export type OrderRecord = Order & { userId: string; idempotencyKey: string; requestHash: string }
+/** Line images hold the file name; they are resolved to URLs when serialized. */
+export type OrderRecord = Order & {
+  userId: string
+  idempotencyKey: string
+  requestHash: string
+  /** When the simulated payment settles, and how. Persisted so a reload can resume it. */
+  settleAt: string
+  outcome: 'confirmed' | 'declined'
+}
 
 export type DbState = {
   schemaVersion: number

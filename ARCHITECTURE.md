@@ -88,5 +88,36 @@ Limitations:
 
 - **WebSocket transport only.** The binding intercepts WebSocket, not HTTP long-polling, so the client uses `transports: ['websocket']`.
 - **Fake handshake without heartbeat.** The binding sends the Engine.IO open packet (`pingInterval` 25s, `pingTimeout` 5s) but never pings. The handler sends a raw ping (`"2"`) every 20s, otherwise the client would drop and reconnect every ~30s.
-- **Default namespace only, no rooms or broadcast helpers.** Per-user isolation must be implemented in the handler.
+- **Default namespace only, no rooms or broadcast helpers.** Per-user isolation is implemented in the handler (see below).
 - **Link by origin.** MSW strips the `/socket.io/` path before matching, so the link targets `window.location.origin` (with `ws`/`wss`).
+- **The mock lives in the page.** A reload restarts the simulated server. Anything time-based (payment settlement) is therefore driven by persisted timestamps, not only by in-memory timers.
+
+### Authentication and scoping
+
+The client passes `auth: (cb) => cb({ token: getToken() })`, so every (re)connection sends the current token in the Socket.IO CONNECT packet (`40{"token":"..."}`). The mock reads that packet, resolves the session and stores the `userId` on the connection. `emitToUser(userId, …)` delivers private events (`order.updated`) only to that user's connections, while `broadcast` sends public ones (catalog changes). The client connects only when a user is logged in (`useRealtime`) and disconnects on logout or user change, releasing its listeners.
+
+### Client handling
+
+`src/realtime/events.ts` validates every event against the contract, ignores already seen `eventId`s and ignores events whose `version` is not newer than the cached resource. A confirmed `order.updated` also invalidates cart and quote, because the server removed the purchased items.
+
+### Reconciliation with REST
+
+On every `connect` (first connection, reconnection, and after a reload), active `['orders', …]` queries are invalidated and refetched from REST, so events missed while disconnected are recovered. The order page always reads `GET /api/orders/:id` on mount (`staleTime: 0`), and the events then keep the same cache entry up to date. There is no polling.
+
+## Orders
+
+| Rule | Where |
+| --- | --- |
+| Creation needs `Idempotency-Key`. The same key with the same body returns the original order, and the same key with a different body returns `409 IDEMPOTENCY_CONFLICT`. | `src/mocks/handlers/orders.ts` |
+| The quote must belong to the user and still match the current cart pricing, otherwise `409 QUOTE_CHANGED`. | `quoteStillValid` in `src/mocks/commerce.ts` |
+| Units are reserved at creation and released if the payment is declined. | `src/mocks/orders.ts` |
+| Settlement happens at the persisted `settleAt`. On boot the mock reschedules pending orders, and `GET /api/orders/:id` settles an order whose deadline has passed. | `resumePendingOrders`, `settleIfDue` |
+| Confirmed and declined are terminal. A confirmation removes only the purchased quantities from the cart. | `settle` |
+| The receipt is a snapshot (lines, prices, totals copied at creation), so later catalog changes never alter it. | `OrderRecord` |
+| Another user's order answers 404, so ids cannot be probed. | `GET /api/orders/:id` |
+
+The client keeps one idempotency key per quote in `sessionStorage` (`idempotencyKeyFor`). Retrying the same attempt therefore reuses it.
+
+## Cart
+
+The cart lives on the (mock) server, keyed by owner: `user:<id>` when authenticated, `guest:<X-Guest-Id>` otherwise. On login or register, the visitor cart is merged into the user cart, capped by availability. Prices and availability are joined from the live catalog on every read. Totals always come from `POST /api/quote`, never from client-side math.

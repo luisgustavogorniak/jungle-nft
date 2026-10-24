@@ -1,5 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import { loginRequestSchema, registerRequestSchema, type Session } from '@/api/contracts'
+import { GUEST_HEADER } from '@/api/http'
+import { mergeGuestCart } from '../commerce'
 import { db, hashPassword, saveDb } from '../db'
 import {
   createSession,
@@ -13,6 +15,12 @@ import {
 } from '../utils'
 import type { SessionRecord } from '../db'
 import type { UserRecord } from '../fixtures/users'
+
+/** The visitor cart (identified by the guest header) moves to the user on login/register. */
+function adoptGuestCart(request: Request, userId: string) {
+  const guestId = request.headers.get(GUEST_HEADER)
+  mergeGuestCart(guestId ? `guest:${guestId}` : null, `user:${userId}`)
+}
 
 function toSession(session: SessionRecord, user: UserRecord): Session {
   return { token: session.token, expiresAt: session.expiresAt, user: toPublicUser(user) }
@@ -51,6 +59,7 @@ export const authHandlers = [
       db().favorites[user.id] = []
       db().wallets[user.id] = []
       const session = createSession(user.id)
+      adoptGuestCart(request, user.id)
       saveDb()
       return HttpResponse.json(toSession(session, user), { status: 201 })
     }),
@@ -65,6 +74,7 @@ export const authHandlers = [
       if (!user || !valid) return errorResponse('UNAUTHENTICATED', 'E-mail ou senha inválidos')
 
       const session = createSession(user.id)
+      adoptGuestCart(request, user.id)
       saveDb()
       return HttpResponse.json(toSession(session, user))
     }),

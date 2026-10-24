@@ -28,12 +28,26 @@ export type Scenario = {
   outOfOrder?: RouteKey[]
   failures?: Partial<Record<RouteKey, FailureMode>>
   emptyCatalog?: boolean
+  /** How long a payment stays pending and how it ends. Default: confirmed after 2s. */
+  settlement?: { delayMs: number; outcome: 'confirmed' | 'declined' }
 }
+
+export const DEFAULT_SETTLEMENT = { delayMs: 2000, outcome: 'confirmed' } as const
 
 export const scenarios = {
   default: {
     description: 'Everything works, with a small variable latency.',
     latency: { min: 150, max: 450 },
+  },
+  'slow-payment': {
+    description: 'Payments stay pending for 6 seconds before confirming (refresh/reconnect recovery).',
+    latency: { min: 150, max: 450 },
+    settlement: { delayMs: 6000, outcome: 'confirmed' },
+  },
+  'payment-declined': {
+    description: 'Payments are declined by the simulated network after 2 seconds.',
+    latency: { min: 150, max: 450 },
+    settlement: { delayMs: 2000, outcome: 'declined' },
   },
   slow: {
     description: 'Every response takes 2.5 to 3.5 seconds (skeletons and loading states).',

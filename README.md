@@ -64,10 +64,14 @@ Example: `http://localhost:5173/?scenario=slow&mock-reset`. In the browser conso
 | Register conflict | Register with `nova@kurio.test` or username `novasato` |
 | Session expired while navigating | Log in, run `__kurioMock.expireSessions()` in the console, then open "Meu perfil" |
 | Private route as visitor | Open `/profile` logged out: you are sent to login and back after authenticating |
+| Pending order recovered after reload | Open `/?scenario=slow-payment`, buy something and reload the order page while it is pending: the state comes back from the API and the confirmation arrives via Socket.IO |
+| Declined payment | Open `/?scenario=payment-declined` and buy something: the order is declined and the items stay in the cart |
 
 | Scenario | Behavior |
 | --- | --- |
-| `default` | Everything works, 150–450 ms latency |
+| `default` | Everything works, 150–450 ms latency. Payments confirm after 2 s |
+| `slow-payment` | Payments stay pending for 6 s before confirming |
+| `payment-declined` | Payments are declined after 2 s |
 | `slow` | 2.5–3.5 s latency on every request |
 | `empty-catalog` | Catalog returns no results |
 | `out-of-order` | Catalog responses alternate 1.5 s / 0.1 s, so older requests resolve last |

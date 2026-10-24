@@ -1,6 +1,7 @@
 import { setupWorker } from 'msw/browser'
 import { initDb, resetDb } from './db'
 import { handlers } from './handlers'
+import { resumePendingOrders } from './orders'
 import { getScenarioName, setScenarioName } from './scenarios'
 import { expireAllSessions } from './utils'
 
@@ -37,6 +38,8 @@ export async function startMocking() {
   }
   if (shouldReset) await resetDb()
   else await initDb()
+  // Payments left pending by a reload settle at their persisted deadline.
+  resumePendingOrders()
 
   if (scenario || shouldReset) {
     url.searchParams.delete('scenario')

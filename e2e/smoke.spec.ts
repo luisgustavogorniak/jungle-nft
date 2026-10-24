@@ -1,8 +1,11 @@
 import { expect, test } from '@playwright/test'
+import { openFresh } from './support/mock'
 
-test('app boots with MSW serving REST and Socket.IO', async ({ page }) => {
-  await page.goto('/')
+test('app boots with MSW serving the catalog', async ({ page }) => {
+  await openFresh(page, '/')
 
-  await expect(page.getByTestId('api-status')).toHaveText('API: ok')
-  await expect(page.getByTestId('realtime-status')).toHaveText('Realtime: realtime online')
+  const items = page.getByRole('list', { name: 'NFTs' }).getByRole('listitem')
+  await expect(items).toHaveCount(9)
+  await expect(items.first()).toContainText('Emerald Ape #042')
+  await expect(items.first()).toContainText('1.19 ETH')
 })

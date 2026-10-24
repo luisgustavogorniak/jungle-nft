@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { useLogout, useSession } from '@/features/auth/session'
+import { useRealtime } from '@/realtime/use-realtime'
 
 export interface RouterContext {
   queryClient: QueryClient
@@ -51,6 +52,9 @@ function SessionArea() {
 }
 
 function RootLayout() {
+  const { user } = useSession()
+  useRealtime(user?.id ?? null)
+
   return (
     <>
       <header className="flex items-center justify-between gap-4 border-b p-4">
@@ -59,6 +63,7 @@ function RootLayout() {
         </Link>
         <nav aria-label="Principal" className="flex gap-4">
           <Link to="/">Início</Link>
+          <Link to="/cart">Carrinho</Link>
           <Link to="/profile">Meu perfil</Link>
         </nav>
         <SessionArea />
