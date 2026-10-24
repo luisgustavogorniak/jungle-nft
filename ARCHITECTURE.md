@@ -144,7 +144,6 @@ The cart lives on the (mock) server, keyed by owner: `user:<id>` when authentica
 | Social brand icons | Text chips (FB, IG…) | lucide v1 dropped brand icons |
 | Prices with comma in the range label | Dot everywhere | Consistent with all other ETH values |
 | Tablet not drawn | Header fits at 768; filters become a drawer below 1280; 3 columns | Breakpoints suggested in the spec |
-| Mobile: search above the hero card | Hero first, then search | Pending polish |
 | Editorial pages, newsletter, footer help links | Honest "not part of the demo" toast | Out-of-scope actions must not look successful |
 
 ## E4b: detalhe e favoritos
