@@ -102,7 +102,7 @@ npm run test:unit   # Node test runner
 npm run test:e2e    # Playwright, desktop (1440×900) and mobile (Pixel 7), Chromium
 ```
 
-Playwright builds the app and serves it with `vite preview` on port 4173, the same artifact that is deployed. If something is already listening on 4173 it is reused, so stop any old `npm run preview` first, or the tests run against a stale build.
+Playwright builds the app and serves it with `vite preview` on port 4173, the same artifact that is deployed. The server is never reused: if something is already listening on 4173 (an old `npm run preview`, for instance) the run stops with a "port already used" error. Stop it and run again; that is deliberate, so the tests can never run against a stale build.
 
 Every test starts from a known state: it opens its first page with `openFresh` (`?mock-reset&scenario=…`), which restores the seed data and picks the scenario, and each test gets a new browser context (empty `localStorage`). Time-sensitive tests use `page.clock`; the Socket.IO ones go through the real `socket.io-client`, driven by the `window.__kurioMock` controls above.
 
