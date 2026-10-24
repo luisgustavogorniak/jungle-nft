@@ -106,6 +106,23 @@ test.describe('profile', () => {
     await expectSignedIn(page, users.nova.displayName)
   })
 
+  test('the password fields of the change form have their own show/hide toggle', async ({ page }) => {
+    await openAs(page, users.nova, '/profile')
+    const form = page.getByRole('form', { name: 'Alterar senha' })
+
+    const current = form.getByLabel('Senha atual')
+    const next = form.getByLabel(/^Nova senha/)
+    await current.fill('Kurio@2026')
+    await next.fill('Novo#Senha2026')
+
+    await form.getByRole('button', { name: 'Mostrar senha' }).first().click()
+    await expect(current).toHaveAttribute('type', 'text')
+    await expect(current).toHaveValue('Kurio@2026')
+    // Revealing one field leaves the others hidden.
+    await expect(next).toHaveAttribute('type', 'password')
+    await expect(form.getByRole('button', { name: 'Ocultar senha' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
   test('a full browser storage rolls the change back with a clear message', async ({ page }) => {
     await openAs(page, users.nova, '/profile')
     await page.evaluate(() => {

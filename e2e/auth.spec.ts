@@ -57,6 +57,35 @@ test.describe('account and session', () => {
     await expect(page.getByText('As senhas não coincidem')).toBeVisible()
   })
 
+  test('password fields can be revealed and hidden again on login and register', async ({ page }) => {
+    for (const [path, fields] of [
+      ['/login', ['Senha']],
+      ['/register', ['Senha', 'Confirmar senha']],
+    ] as const) {
+      await openFresh(page, path)
+      for (const label of fields) {
+        // The label carries a "*" for required fields; anchoring keeps the toggle ("Mostrar senha") out.
+        const input = page.getByLabel(new RegExp(`^${label}\\*?$`))
+        // Each field owns the toggle right next to it.
+        const toggle = input.locator('xpath=following-sibling::button')
+        await input.fill('Secret#123')
+
+        await expect(input).toHaveAttribute('type', 'password')
+        await expect(toggle).toHaveAttribute('aria-label', 'Mostrar senha')
+        await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+
+        await toggle.click()
+        await expect(input).toHaveAttribute('type', 'text')
+        await expect(input).toHaveValue('Secret#123')
+        await expect(toggle).toHaveAttribute('aria-label', 'Ocultar senha')
+        await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+
+        await toggle.click()
+        await expect(input).toHaveAttribute('type', 'password')
+      }
+    }
+  })
+
   test('private route redirects to login and returns after authenticating', async ({ page }) => {
     await openFresh(page, '/profile')
 

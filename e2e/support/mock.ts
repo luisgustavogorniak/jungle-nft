@@ -37,7 +37,7 @@ export async function mockControls(page: Page, action: 'reset' | 'expireSessions
 
 export async function login(page: Page, user: { email: string; password: string }) {
   await page.getByLabel('E-mail').fill(user.email)
-  await page.getByLabel('Senha').fill(user.password)
+  await page.getByLabel(/^Senha\*?$/).fill(user.password)
   await page.getByRole('button', { name: 'Entrar' }).click()
 }
 
