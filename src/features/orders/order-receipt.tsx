@@ -80,25 +80,25 @@ export function OrderReceipt({
         )}
       </header>
 
-      <dl className="grid grid-cols-2 gap-4 border-b border-primary pb-5 text-sm sm:grid-cols-4 sm:gap-0 sm:divide-x sm:divide-primary sm:whitespace-nowrap">
-        <div className="grid content-start gap-1 sm:px-4">
-          <dt className="font-bold text-copy">ID da transação</dt>
+      <dl className="grid grid-cols-2 gap-4 border-b border-primary pb-5 text-sm sm:grid-cols-[repeat(4,auto)] sm:justify-between sm:gap-0 sm:px-10 sm:divide-x sm:divide-primary sm:whitespace-nowrap">
+        <div className="grid content-start gap-1 sm:px-4 sm:first:pl-0 sm:last:pr-0">
+          <dt className="text-copy">ID da transação</dt>
           <dd data-testid="order-tx" className="text-copy">
             {order.txHash ? shortAddress(order.txHash) : order.status === 'pending' ? 'Aguardando' : '—'}
           </dd>
         </div>
-        <div className="grid content-start gap-1 sm:px-4">
+        <div className="grid content-start gap-1 sm:px-4 sm:first:pl-0 sm:last:pr-0">
           <dt className="text-copy">Data</dt>
           <dd className="text-copy">{date}</dd>
         </div>
-        <div className="grid content-start gap-1 sm:px-4">
+        <div className="grid content-start gap-1 sm:px-4 sm:first:pl-0 sm:last:pr-0">
           <dt className="text-copy">Total</dt>
           <dd data-testid="order-total" className="text-copy">
             {formatEth(order.total)}
           </dd>
         </div>
-        <div className="grid content-start gap-1 sm:px-4">
-          <dt className="font-bold text-copy">Carteira</dt>
+        <div className="grid content-start gap-1 sm:px-4 sm:first:pl-0 sm:last:pr-0">
+          <dt className="text-copy">Carteira</dt>
           <dd className="text-copy" title={order.walletAddress}>
             {providerLabels[order.provider]}
           </dd>
