@@ -62,7 +62,8 @@ export function SiteHeader() {
           </ul>
         </nav>
 
-        <div className="flex items-center gap-4 justify-self-end">
+        {/* h-10 = the tallest state (the "Entrar" button), so the header does not grow when the session resolves. */}
+        <div className="flex h-10 items-center gap-4 justify-self-end">
           <Button variant="ghost" size="icon-sm" aria-label="Buscar NFTs" onClick={() => void focusSearch()}>
             <Search className="size-5" />
           </Button>
@@ -82,6 +83,7 @@ export function SiteHeader() {
             )}
           </Link>
 
+          {isPending && <span aria-hidden="true" className="w-[100px]" />}
           {!isPending &&
             (user ? (
               <div className="flex items-center gap-3">

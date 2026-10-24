@@ -49,7 +49,13 @@ function RootLayout() {
         Pular para o conteúdo
       </a>
       <SiteHeader />
-      <div id="main" tabIndex={-1} className={cn('outline-none', hasTabBar(pathname) && 'pb-28 md:pb-0')}>
+      {/* md+: at least one screen tall, so the footer (which has its own top margin) starts below the
+          fold and is never seen being pushed down while the page loads in stages. */}
+      <div
+        id="main"
+        tabIndex={-1}
+        className={cn('outline-none md:min-h-[calc(100svh-5rem)]', hasTabBar(pathname) && 'pb-28 md:pb-0')}
+      >
         <Outlet />
       </div>
       {/* Profile and wallets have no footer in the layout (D8/D9). */}
