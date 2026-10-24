@@ -7,7 +7,9 @@
 | `src/main.tsx` | Starts MSW (when enabled), then lazy-loads the app |
 | `src/App.tsx` | QueryClient + Router providers |
 | `src/routes/` | File-based routes (TanStack Router plugin generates `routeTree.gen.ts`) |
-| `src/api/` | Axios client and REST contracts |
+| `src/api/` | Axios client, REST contracts and typed endpoint functions |
+| `src/features/` | Feature logic: queries, mutations, forms (e.g. `features/auth`) |
+| `src/lib/` | Framework-agnostic helpers (ETH math, query client, form errors) |
 | `src/realtime/` | Socket.IO client |
 | `src/mocks/` | MSW handlers (REST and Socket.IO) |
 | `src/components/ui/` | shadcn/ui components |
@@ -28,8 +30,20 @@
 
 - The request interceptor adds `Authorization: Bearer <token>` and `X-Guest-Id`. The guest id owns the visitor cart until it is merged on login.
 - The response interceptor turns every failure into an `ApiError`: API errors, `NETWORK_ERROR`, `TIMEOUT` and `CANCELED`. `isTransient` marks failures worth retrying.
-- When an authenticated request gets a 401, `onSessionExpired` listeners are notified.
-- The session token lives in `localStorage` (`kurio.token`), so the session survives refresh. Passwords never leave the login/register request, and the mock stores only salted SHA-256 hashes.
+- When an authenticated request to a private resource gets a 401, `onSessionExpired` listeners are notified. `/auth/*` endpoints are excluded: a wrong password and the boot-time session check handle 401 themselves.
+
+## Session policy
+
+- **Storage.** The token lives in `localStorage` (`kurio.token`), so the session survives refresh. Passwords exist only in the login/register request body, and the mock stores salted SHA-256 hashes. In a real backend, an `HttpOnly` cookie would be preferable. With MSW there is no server to set one.
+- **Boot.** The `['session']` query calls `GET /auth/session` when a token exists. A 401 discards the token and the user continues as a visitor (`null`), not as an error.
+- **Lifetime.** 30 minutes (`SESSION_TTL_MS` in the mock).
+- **Route guard.** `src/routes/_authenticated.tsx` is a pathless layout. Its `beforeLoad` uses `ensureQueryData(sessionQueryOptions)` and redirects to `/login?redirect=<current url>`. Login and register only accept same-origin paths as `redirect` (`safeRedirect`), which prevents open redirects.
+- **Expiration while navigating.** A private request answered with 401 triggers `onSessionExpired`. `App.tsx` ends the local session, shows a toast and navigates to `/login?redirect=<current url>&reason=expired`. After logging in again, the user returns to the same URL. Server-side state (cart, pending order) is untouched, so the checkout can resume.
+- **Logout and user switch.** `endSession` drops the token, disconnects the socket and removes every cached query except the session one. It does not call `queryClient.clear()`, which would also delete the session query object and leave mounted observers (the header) subscribed to a dead query. Login runs the same cleanup before storing the new session, so data cached for a previous user or visitor is never shown. The local logout is immediate, and revoking the token on the server is best effort. Closing the tab right after "Sair" therefore never keeps the user logged in.
+
+## Query defaults
+
+`src/lib/query-client.ts`: `staleTime` 30 s. Queries retry at most twice and only on transient failures (connection, timeout, 5xx), since retrying a 4xx would fail the same way. Mutations are never retried automatically, so side effects are not duplicated. Per-feature policies are documented with each feature.
 
 ## Mock backend
 

@@ -1,7 +1,8 @@
 import { delay, HttpResponse, type DefaultBodyType, type HttpResponseResolver, type PathParams } from 'msw'
 import type { ApiErrorBody, ErrorCode, Nft } from '@/api/contracts'
 import { GUEST_HEADER } from '@/api/http'
-import { db, type SessionRecord } from './db'
+import type { z } from 'zod'
+import { db, saveDb, type SessionRecord } from './db'
 import type { NftRecord } from './fixtures/nfts'
 import type { UserRecord } from './fixtures/users'
 import { resolveNftImage } from './images'
@@ -48,17 +49,55 @@ export function withScenario<
     const failure = getScenario().failures?.[route]
     if (failure === 'network') return HttpResponse.error()
     if (failure === 'timeout') await delay('infinite')
-    if (failure === 500) return errorResponse('INTERNAL_ERROR', 'Simulated server error')
-    if (failure === 503) return errorResponse('SERVICE_UNAVAILABLE', 'Service temporarily unavailable')
+    if (failure === 500) return errorResponse('INTERNAL_ERROR', 'Erro inesperado no servidor')
+    if (failure === 503) return errorResponse('SERVICE_UNAVAILABLE', 'Serviço temporariamente indisponível')
     return resolver(info)
   }
 }
 
+/** Parses a JSON body against a contract schema, or throws a 422 with field errors. */
+export async function parseBody<T>(request: Request, schema: z.ZodType<T>): Promise<T> {
+  const body: unknown = await request.json().catch(() => null)
+  const result = schema.safeParse(body)
+  if (result.success) return result.data
+  const fieldErrors: Record<string, string> = {}
+  for (const issue of result.error.issues) {
+    const field = issue.path.join('.') || 'body'
+    fieldErrors[field] ??= issue.message
+  }
+  throw errorResponse('VALIDATION_ERROR', 'Verifique os campos destacados', { fieldErrors })
+}
+
+// ---------- Sessions ----------
+
+export const SESSION_TTL_MS = 30 * 60 * 1000
+
+export function createSession(userId: string): SessionRecord {
+  const session = {
+    token: crypto.randomUUID(),
+    userId,
+    expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString(),
+  }
+  db().sessions.push(session)
+  return session
+}
+
+/** Forces every session to expire now (mock control used by tests and demos). */
+export function expireAllSessions() {
+  const past = new Date(Date.now() - 1000).toISOString()
+  for (const session of db().sessions) session.expiresAt = past
+  saveDb()
+}
+
+export function readToken(request: Request): string | null {
+  const header = request.headers.get('Authorization')
+  return header?.startsWith('Bearer ') ? header.slice(7) : null
+}
+
 // ---------- Auth ----------
 
-function findSession(request: Request): SessionRecord | null {
-  const header = request.headers.get('Authorization')
-  const token = header?.startsWith('Bearer ') ? header.slice(7) : null
+export function findSession(request: Request): SessionRecord | null {
+  const token = readToken(request)
   if (!token) return null
   return db().sessions.find((session) => session.token === token) ?? null
 }
@@ -66,12 +105,12 @@ function findSession(request: Request): SessionRecord | null {
 /** Returns the authenticated user or throws a 401 response (MSW sends thrown responses as-is). */
 export function requireUser(request: Request): UserRecord {
   const session = findSession(request)
-  if (!session) throw errorResponse('UNAUTHENTICATED', 'Authentication required')
+  if (!session) throw errorResponse('UNAUTHENTICATED', 'Faça login para continuar')
   if (new Date(session.expiresAt).getTime() <= Date.now()) {
-    throw errorResponse('SESSION_EXPIRED', 'Your session has expired')
+    throw errorResponse('SESSION_EXPIRED', 'Sua sessão expirou')
   }
   const user = db().users.find((candidate) => candidate.id === session.userId)
-  if (!user) throw errorResponse('UNAUTHENTICATED', 'Authentication required')
+  if (!user) throw errorResponse('UNAUTHENTICATED', 'Faça login para continuar')
   return user
 }
 

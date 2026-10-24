@@ -54,7 +54,16 @@ Add query params to any URL. They are applied before the app starts and removed 
 | `?scenario=<name>` | Selects a network scenario. It persists across reloads until another one is chosen. |
 | `?mock-reset` | Restores the seed data (catalog, users, carts, favorites, wallets, orders). |
 
-Example: `http://localhost:5173/?scenario=slow&mock-reset`. In the browser console, `window.__kurioMock` exposes `reset()`, `setScenario(name)` and `getScenario()`.
+Example: `http://localhost:5173/?scenario=slow&mock-reset`. In the browser console, `window.__kurioMock` exposes `reset()`, `setScenario(name)`, `getScenario()` and `expireSessions()`.
+
+### Reproducing failure flows
+
+| Flow | How |
+| --- | --- |
+| Wrong credentials | Log in with any wrong password |
+| Register conflict | Register with `nova@kurio.test` or username `novasato` |
+| Session expired while navigating | Log in, run `__kurioMock.expireSessions()` in the console, then open "Meu perfil" |
+| Private route as visitor | Open `/profile` logged out: you are sent to login and back after authenticating |
 
 | Scenario | Behavior |
 | --- | --- |

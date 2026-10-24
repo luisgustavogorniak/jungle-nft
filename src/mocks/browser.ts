@@ -2,6 +2,7 @@ import { setupWorker } from 'msw/browser'
 import { initDb, resetDb } from './db'
 import { handlers } from './handlers'
 import { getScenarioName, setScenarioName } from './scenarios'
+import { expireAllSessions } from './utils'
 
 export const worker = setupWorker(...handlers)
 
@@ -12,6 +13,7 @@ declare global {
       reset: () => Promise<void>
       setScenario: (name: string) => void
       getScenario: () => string
+      expireSessions: () => void
     }
   }
 }
@@ -46,6 +48,7 @@ export async function startMocking() {
     reset: resetDb,
     setScenario: setScenarioName,
     getScenario: getScenarioName,
+    expireSessions: expireAllSessions,
   }
 
   await worker.start({ onUnhandledRequest: 'bypass', quiet: import.meta.env.PROD })

@@ -98,8 +98,11 @@ http.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
     const apiError = toApiError(error)
-    const sentToken = error instanceof AxiosError && error.config?.headers?.Authorization
-    if (apiError.status === 401 && sentToken) {
+    const config = error instanceof AxiosError ? error.config : undefined
+    // A 401 on a private resource means the session is gone. Auth endpoints are
+    // excluded: wrong credentials and the boot-time session check handle 401 themselves.
+    const isAuthEndpoint = config?.url?.startsWith('/auth/') ?? false
+    if (apiError.status === 401 && config?.headers?.Authorization && !isAuthEndpoint) {
       sessionExpiredListeners.forEach((listener) => listener())
     }
     return Promise.reject(apiError)
