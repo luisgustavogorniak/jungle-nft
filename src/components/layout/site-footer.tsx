@@ -105,11 +105,14 @@ export function SiteFooter() {
             <Link to="/profile" className={linkClass}>
               Meu perfil
             </Link>
-            {['Minha coleção', 'Atividade', 'Estúdio do criador', 'Lista de interesse'].map((label) => (
+            {['Minha coleção', 'Atividade', 'Estúdio do criador'].map((label) => (
               <OutOfScopeLink key={label} className={linkClass}>
                 {label}
               </OutOfScopeLink>
             ))}
+            <Link to="/favorites" className={linkClass}>
+              Lista de interesse
+            </Link>
           </nav>
           <nav aria-label="Central de ajuda" className="grid content-start">
             <h2 className="mb-2 text-lg font-bold">Central de ajuda</h2>

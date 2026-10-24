@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   cartSchema,
+  favoritesSchema,
   nftListResponseSchema,
   nftSchema,
   orderSchema,
@@ -9,6 +10,7 @@ import {
   type Cart,
   type CartItemInput,
   type CreateOrderRequest,
+  type Favorites,
   type Nft,
   type NftListQuery,
   type NftListResponse,
@@ -64,5 +66,22 @@ export const ordersApi = {
   async get(orderId: string, signal?: AbortSignal): Promise<Order> {
     const { data } = await http.get(`/orders/${encodeURIComponent(orderId)}`, { signal })
     return orderSchema.parse(data)
+  },
+}
+
+export const favoritesApi = {
+  async list(signal?: AbortSignal): Promise<Favorites> {
+    const { data } = await http.get('/favorites', { signal })
+    return favoritesSchema.parse(data)
+  },
+
+  async add(nftId: string): Promise<Favorites> {
+    const { data } = await http.put(`/favorites/${encodeURIComponent(nftId)}`)
+    return favoritesSchema.parse(data)
+  },
+
+  async remove(nftId: string): Promise<Favorites> {
+    const { data } = await http.delete(`/favorites/${encodeURIComponent(nftId)}`)
+    return favoritesSchema.parse(data)
   },
 }

@@ -146,3 +146,9 @@ The cart lives on the (mock) server, keyed by owner: `user:<id>` when authentica
 | Tablet not drawn | Header fits at 768; filters become a drawer below 1280; 3 columns | Breakpoints suggested in the spec |
 | Mobile: search above the hero card | Hero first, then search | Pending polish |
 | Editorial pages, newsletter, footer help links | Honest "not part of the demo" toast | Out-of-scope actions must not look successful |
+
+## E4b: detalhe e favoritos
+- **Favoritos otimistas:** `useToggleFavorite` atualiza o cache em `onMutate`, restaura o snapshot em `onError` (com toast) e só o último toggle em voo reconcilia com o servidor (`onSettled` + `isMutating`). PUT/DELETE idempotentes no mock; visitante é enviado ao login e volta ao NFT.
+- **Edição pré-selecionada:** derivada (primeira com estoque, ou a escolha do usuário enquanto tiver estoque), não guardada em estado. Sem estoque: botões desabilitados com texto associado por `aria-describedby`.
+- **Detalhe mobile sem tab bar** (como no Figma): a barra de compra fixa a substitui, e o toast "adicionado" traz a ação "Ver carrinho".
+- **Desvios do Figma:** galeria repete a única arte da API; sem zoom nem "Compartilhar"; aba Avaliações com aviso (não desenhada); botão de carrinho também no desktop (o frame só tem COMPRAR).

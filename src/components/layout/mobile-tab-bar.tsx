@@ -1,5 +1,5 @@
-import { Link } from '@tanstack/react-router'
-import { House, ShoppingBag, User } from 'lucide-react'
+import { Link, useRouterState } from '@tanstack/react-router'
+import { Heart, House, ShoppingBag, User } from 'lucide-react'
 import { useCartCount } from '@/features/cart/queries'
 import { useSession } from '@/features/auth/session'
 
@@ -13,6 +13,10 @@ const item =
 export function MobileTabBar() {
   const { user } = useSession()
   const cartCount = useCartCount()
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
+
+  // The detail page has its own buy bar in the layout, with no tab bar.
+  if (pathname.startsWith('/nfts/')) return null
 
   return (
     <nav
@@ -24,6 +28,12 @@ export function MobileTabBar() {
           <Link to="/" activeOptions={{ exact: true }} className={item}>
             <House className="size-6" />
             Início
+          </Link>
+        </li>
+        <li>
+          <Link to="/favorites" className={item}>
+            <Heart className="size-6" />
+            Favoritos
           </Link>
         </li>
         <li>

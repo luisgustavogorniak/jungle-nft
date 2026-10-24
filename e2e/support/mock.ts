@@ -86,3 +86,9 @@ export async function withFilters(page: Page, actions: (scope: Awaited<ReturnTyp
   await actions(scope)
   await closeFilters(page)
 }
+
+/** Edition chips hide their radio input; the visible target is the label. */
+export async function selectEdition(page: Page, label: string) {
+  await page.locator('label', { hasText: label }).click()
+  await expect(page.getByRole('radio', { name: new RegExp('^' + label.replace('/', '[/]') + ' ') })).toBeChecked()
+}

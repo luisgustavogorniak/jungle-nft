@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import type { Nft } from '@/api/contracts'
+import { FavoriteButton } from '@/features/favorites/favorite-button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatEth } from '@/lib/eth'
 
@@ -9,7 +10,7 @@ const art = 'aspect-[7/8] w-full rounded-[20px] object-cover md:aspect-square md
 
 export function NftCard({ nft, priority = false }: { nft: Nft; priority?: boolean }) {
   return (
-    <article>
+    <article className="relative">
       <Link
         to="/nfts/$nftId"
         params={{ nftId: nft.id }}
@@ -47,6 +48,8 @@ export function NftCard({ nft, priority = false }: { nft: Nft; priority?: boolea
           </p>
         </div>
       </Link>
+      {/* Outside the link (a button cannot live inside one). The desktop layout has no heart on cards. */}
+      <FavoriteButton nftId={nft.id} name={nft.name} variant="card" className="absolute top-3 right-3 md:hidden" />
     </article>
   )
 }
