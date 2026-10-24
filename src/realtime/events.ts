@@ -47,6 +47,7 @@ export function applyOrderUpdated(queryClient: QueryClient, payload: unknown) {
     void queryClient.invalidateQueries({ queryKey: key })
   }
 
+  void queryClient.invalidateQueries({ queryKey: orderKeys.pending, exact: true })
   // A confirmed order removed the purchased items from the server cart.
   if (event.data.status === 'confirmed') {
     void queryClient.invalidateQueries({ queryKey: cartKeys.cart })

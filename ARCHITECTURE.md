@@ -124,7 +124,7 @@ On every `connect`, active `['orders', …]` queries are invalidated and refetch
 | The receipt is a snapshot (lines, prices, totals copied at creation), so later catalog changes never alter it. | `OrderRecord` |
 | Another user's order answers 404, so ids cannot be probed. | `GET /api/orders/:id` |
 
-The client keeps one idempotency key per quote in `sessionStorage` (`idempotencyKeyFor`). Retrying the same attempt therefore reuses it.
+The client keeps one idempotency key per purchase attempt in `sessionStorage` (`attemptKey` in `src/features/orders/queries.ts`). The key is dropped only when the attempt gets a definitive answer: success, or an error that proves no order was created (4xx). After a transient failure (timeout, connection, 5xx) the order may exist, so the key stays, survives a reload, and any new submission reuses it. "Tentar novamente" resends the same request and recovers the order; a submission with different data gets `IDEMPOTENCY_CONFLICT` instead of a second purchase. `GET /api/orders?status=pending` lists pending orders, used by the pending order notice on cart and checkout.
 
 ## Cart
 
@@ -175,3 +175,14 @@ The cart lives on the (mock) server, keyed by owner: `user:<id>` when authentica
 - **Aviso** em uma região `aria-live` sempre montada, que também é o aviso visível. Sem toast, para não ser lido duas vezes.
 - **Checkout** compara a cotação por conteúdo e exige "Aceitar novo valor". O servidor mantém o `QUOTE_CHANGED`.
 - **Mock:** `updateNft`, `dropConnections` e o cenário `price-change`. Reserva e liberação de unidades por pedido também emitem `nft.updated`.
+
+## E7a: checkout
+
+- **Fluxo em etapas:** editar → conectar carteira → revisar → confirmar. Um botão principal só, como no layout, com o rótulo da etapa atual.
+- **Conexão de carteira simulada:** `POST /api/wallets/:id/connect` com provedor e rede. O cenário `wallet-rejected` recusa (`409 WALLET_REJECTED`). Trocar carteira, provedor ou rede invalida a conexão (comparação derivada, sem efeito); "Desconectar" volta ao início.
+- **Revalidação antes de confirmar:** "Confirmar compra" relê a cotação (`refetch`). Se o conteúdo mudou desde a revisão, o pedido não é enviado e aparece o aviso com "Aceitar novo valor". O servidor continua com o `QUOTE_CHANGED` como última barreira.
+- **Idempotência por tentativa** (ver Orders). Clique repetido: botão desabilitado e um `ref` que bloqueia reentrada antes do re-render; mesmo que duas requisições saíssem, a mesma chave devolve o mesmo pedido.
+- **Carteira principal pré-selecionada** (`slot === 'primary'`), com rede e provedor dela.
+- **Desvio do Figma (D4):** os campos de carteira do form desktop (Nome do perfil, Endereço, ENS/secundária, Código de indicação, Nome ENS) são só leitura e vêm da `Wallet` cadastrada. Editar fica em Perfil/Carteiras, para o mesmo dado não ter duas fontes. "Tipo de carteira" virou a escolha da carteira cadastrada, e o rádio "Usar outra carteira?" saiu por ser redundante com ele. Ficam editáveis: nome de exibição, usuário, e-mail, rede e observação.
+- **Desvio do Figma (M4):** o form do colecionador aparece no mobile (o enunciado exige os dados), em uma coluna depois das carteiras. Sem tab bar no checkout, como em carrinho e detalhe. O menu ⋮ e "Trocar carteira" dos cards não foram feitos: os próprios cards trocam a carteira.
+- **Cenários:** `slow-payment` agora fica 8 s pendente (dá tempo de ver o estado e recarregar). `order-timeout` cria o pedido e não responde; a liquidação dele leva 15 s para o pedido ainda estar pendente quando o cliente desiste aos 10 s.

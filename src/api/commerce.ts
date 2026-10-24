@@ -6,6 +6,7 @@ import {
   nftSchema,
   orderSchema,
   quoteSchema,
+  walletConnectionSchema,
   walletSchema,
   type Cart,
   type CartItemInput,
@@ -17,6 +18,8 @@ import {
   type Order,
   type Quote,
   type Wallet,
+  type WalletConnection,
+  type WalletConnectionRequest,
 } from './contracts'
 import { http, IDEMPOTENCY_HEADER } from './http'
 
@@ -65,6 +68,11 @@ export const walletsApi = {
     const { data } = await http.get('/wallets', { signal })
     return z.array(walletSchema).parse(data)
   },
+
+  async connect(walletId: string, body: WalletConnectionRequest): Promise<WalletConnection> {
+    const { data } = await http.post(`/wallets/${encodeURIComponent(walletId)}/connect`, body)
+    return walletConnectionSchema.parse(data)
+  },
 }
 
 export const ordersApi = {
@@ -76,6 +84,11 @@ export const ordersApi = {
   async get(orderId: string, signal?: AbortSignal): Promise<Order> {
     const { data } = await http.get(`/orders/${encodeURIComponent(orderId)}`, { signal })
     return orderSchema.parse(data)
+  },
+
+  async listPending(signal?: AbortSignal): Promise<Order[]> {
+    const { data } = await http.get('/orders', { params: { status: 'pending' }, signal })
+    return z.array(orderSchema).parse(data)
   },
 }
 

@@ -116,3 +116,25 @@ export async function updateNftWhileDisconnected(page: Page, nftId: string, chan
     [nftId, changes] as const,
   )
 }
+
+/** The primary wallet comes selected: a select on desktop, a card on mobile. */
+export async function expectPrimaryWallet(page: Page) {
+  if (isMobile(page)) await expect(page.getByRole('radio', { name: /Principal/ })).toBeChecked()
+  else await expect(page.getByLabel('Tipo de carteira')).toHaveValue(/primary/)
+}
+
+/** Checkout: connect the selected wallet and open the review step. */
+export async function connectAndReview(page: Page) {
+  await page.getByRole('button', { name: 'Conectar carteira' }).click()
+  await expect(page.getByText(/conectada ·/)).toBeVisible()
+  await page.getByRole('button', { name: 'Revisar pedido' }).click()
+  await expect(page.getByRole('heading', { name: 'Revise seu pedido' })).toBeFocused()
+}
+
+/** Orders of the logged-in user, read from the API like the app does. */
+export async function listOrders(page: Page): Promise<{ id: string; status: string }[]> {
+  return page.evaluate(async () => {
+    const response = await fetch('/api/orders', { headers: { Authorization: `Bearer ${localStorage.getItem('kurio.token')}` } })
+    return (await response.json()) as { id: string; status: string }[]
+  })
+}

@@ -46,7 +46,8 @@ test.describe('cart', () => {
     await page.getByRole('link', { name: 'Conectar e finalizar' }).click()
     await login(page, users.nova)
     await expect(page).toHaveURL('/checkout')
-    await expect(page.getByTestId('summary-subtotal')).toHaveText('2.38 ETH')
+    // The mobile checkout shows only the total (M4).
+    await expect(page.getByTestId('summary-total')).toHaveText('2.396 ETH')
   })
 
   test('validates coupons: invalid, expired, applied (kept after refresh) and removed', async ({ page }) => {

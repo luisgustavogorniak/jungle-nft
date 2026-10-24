@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { login, openCart, openFresh, selectEdition, users } from './support/mock'
+import { connectAndReview, expectPrimaryWallet, login, openCart, openFresh, selectEdition, users } from './support/mock'
 
 /** Catalog → detail → cart → login → checkout, stopping right after "Confirmar compra". */
 async function buyEmeraldApe(page: Page, scenario?: string) {
@@ -23,8 +23,9 @@ async function buyEmeraldApe(page: Page, scenario?: string) {
   await login(page, users.nova)
   await expect(page).toHaveURL('/checkout')
 
-  await page.getByRole('radio', { name: /Principal/ }).check()
+  await expectPrimaryWallet(page)
   await expect(page.getByTestId('summary-total')).toHaveText('2.396 ETH')
+  await connectAndReview(page)
   await page.getByRole('button', { name: 'Confirmar compra' }).click()
   await expect(page).toHaveURL(/\/orders\/order-/)
 }

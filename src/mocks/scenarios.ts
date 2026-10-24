@@ -32,6 +32,10 @@ export type Scenario = {
   settlement?: { delayMs: number; outcome: 'confirmed' | 'declined' }
   /** After the first quote of the page load, the first cart item gets `percent` more expensive. */
   priceChange?: { delayMs: number; percent: number }
+  /** The wallet refuses every connection request. */
+  walletRejects?: boolean
+  /** A new order is created, but its response never arrives (the client times out). */
+  orderTimeout?: boolean
 }
 
 export const DEFAULT_SETTLEMENT = { delayMs: 2000, outcome: 'confirmed' } as const
@@ -42,9 +46,21 @@ export const scenarios = {
     latency: { min: 150, max: 450 },
   },
   'slow-payment': {
-    description: 'Payments stay pending for 6 seconds before confirming (refresh/reconnect recovery).',
+    description: 'Payments stay pending for 8 seconds before confirming (refresh/reconnect recovery).',
     latency: { min: 150, max: 450 },
-    settlement: { delayMs: 6000, outcome: 'confirmed' },
+    settlement: { delayMs: 8000, outcome: 'confirmed' },
+  },
+  'wallet-rejected': {
+    description: 'The wallet refuses the connection request.',
+    latency: { min: 150, max: 450 },
+    walletRejects: true,
+  },
+  'order-timeout': {
+    description: 'The order is created but its response never arrives; a retry with the same key recovers it.',
+    latency: { min: 150, max: 450 },
+    orderTimeout: true,
+    // Still pending after the client's 10s timeout, so the retry finds it pending.
+    settlement: { delayMs: 15_000, outcome: 'confirmed' },
   },
   'payment-declined': {
     description: 'Payments are declined by the simulated network after 2 seconds.',

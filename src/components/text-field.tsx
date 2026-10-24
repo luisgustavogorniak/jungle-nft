@@ -18,7 +18,7 @@ export function TextField({ label, error, required, id, ...inputProps }: TextFie
       <Label htmlFor={inputId}>
         {label}
         {required && (
-          <span aria-hidden="true">*</span>
+          <span aria-hidden="true" className="text-coral">*</span>
         )}
       </Label>
       <Input

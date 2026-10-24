@@ -66,6 +66,9 @@ Example: `http://localhost:5173/?scenario=slow&mock-reset`. In the browser conso
 | Session expired while navigating | Log in, run `__kurioMock.expireSessions()` in the console, then open "Meu perfil" |
 | Private route as visitor | Open `/profile` logged out: you are sent to login and back after authenticating |
 | Pending order recovered after reload | Open `/?scenario=slow-payment`, buy something and reload the order page while it is pending: the state comes back from the API and the confirmation arrives via Socket.IO |
+| Wallet connection refused | Open `/checkout?scenario=wallet-rejected` logged in with items in the cart and click "Conectar carteira". Switch back with `__kurioMock.setScenario('default')` to connect |
+| Timeout after the order was created | Open `/checkout?scenario=order-timeout`, connect, review and confirm. After 10 s the error offers "Tentar novamente", which reuses the idempotency key and opens the same order (no duplicate) |
+| Pending order notice | With `slow-payment`, buy something and open the cart within 8 s: a notice links to the pending order |
 | Declined payment | Open `/?scenario=payment-declined` and buy something: the order is declined and the items stay in the cart |
 | Price change with the item in the cart | Add an NFT to the cart, then open `/cart?scenario=price-change` (or `/checkout?scenario=price-change` logged in). About 4 s later the first cart item gets 10% more expensive via `nft.updated`: a notice is announced (`aria-live`), the summary is recalculated and, on the checkout, "Confirmar compra" stays disabled until "Aceitar novo valor". It fires once per page load; reload to repeat. For an exact value: `__kurioMock.updateNft('emerald-ape-042', { price: '1.50' })` |
 | Sold out while in the cart | `__kurioMock.updateNft('emerald-ape-042', { editions: [{ id: '1-50', available: 0 }] })` with that edition in the cart |
@@ -74,7 +77,9 @@ Example: `http://localhost:5173/?scenario=slow&mock-reset`. In the browser conso
 | Scenario | Behavior |
 | --- | --- |
 | `default` | Everything works, 150–450 ms latency. Payments confirm after 2 s |
-| `slow-payment` | Payments stay pending for 6 s before confirming |
+| `slow-payment` | Payments stay pending for 8 s before confirming, long enough to see the pending state and reload the order page |
+| `wallet-rejected` | The wallet refuses every connection request on the checkout |
+| `order-timeout` | The order is created but its response never arrives; the client times out after 10 s and "Tentar novamente" recovers the same order |
 | `payment-declined` | Payments are declined after 2 s |
 | `price-change` | 4 s after the first quote of the page load, the first cart item gets 10% more expensive (`nft.updated`) |
 | `slow` | 2.5–3.5 s latency on every request |

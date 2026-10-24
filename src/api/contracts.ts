@@ -19,6 +19,7 @@ export const errorCodes = [
   'COUPON_INVALID',
   'COUPON_EXPIRED',
   'IDEMPOTENCY_CONFLICT',
+  'WALLET_REJECTED',
   'SERVICE_UNAVAILABLE',
   'INTERNAL_ERROR',
 ] as const
@@ -192,6 +193,16 @@ export const walletSchema = walletInputSchema.extend({
   updatedAt: z.iso.datetime(),
 })
 export type Wallet = z.infer<typeof walletSchema>
+
+/** Simulated connection of a registered wallet through a provider, before paying. */
+export const walletConnectionRequestSchema = z.object({ provider: walletProviderSchema, network: networkSchema })
+export type WalletConnectionRequest = z.infer<typeof walletConnectionRequestSchema>
+
+export const walletConnectionSchema = walletConnectionRequestSchema.extend({
+  walletId: z.string(),
+  connectedAt: z.iso.datetime(),
+})
+export type WalletConnection = z.infer<typeof walletConnectionSchema>
 
 // ---------- Favorites ----------
 

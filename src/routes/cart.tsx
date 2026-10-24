@@ -9,6 +9,7 @@ import { CouponForm } from '@/features/cart/coupon-form'
 import { OrderSummary, OrderSummarySkeleton } from '@/features/cart/order-summary'
 import { cartQueryOptions, useCartQuote } from '@/features/cart/queries'
 import { NftShelf } from '@/features/catalog/nft-shelf'
+import { PendingOrderNotice } from '@/features/orders/pending-order-notice'
 import { errorMessage } from '@/lib/form-errors'
 
 export const Route = createFileRoute('/cart')({
@@ -57,6 +58,8 @@ function CartPage() {
           {' / '}
           <span aria-current="page">Carrinho</span>
         </nav>
+
+        <PendingOrderNotice />
 
         {cart.isPending && <CartSkeleton />}
         {cart.isError && (

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { login, openFresh, selectEdition, updateNft, updateNftWhileDisconnected, users } from './support/mock'
+import { connectAndReview, login, openFresh, selectEdition, updateNft, updateNftWhileDisconnected, users } from './support/mock'
 
 const NFT_ID = 'emerald-ape-042'
 
@@ -39,7 +39,7 @@ test.describe('realtime', () => {
     await page.getByRole('link', { name: 'Conectar e finalizar' }).click()
     await login(page, users.nova)
     await expect(page).toHaveURL('/checkout')
-    await page.getByRole('radio', { name: /Principal/ }).check()
+    await connectAndReview(page)
     await expect(page.getByRole('button', { name: 'Confirmar compra' })).toBeEnabled()
 
     await updateNft(page, NFT_ID, { price: '1.50' })

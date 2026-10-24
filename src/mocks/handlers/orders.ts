@@ -1,4 +1,4 @@
-import { http, HttpResponse } from 'msw'
+import { delay, http, HttpResponse } from 'msw'
 import { createOrderRequestSchema } from '@/api/contracts'
 import { IDEMPOTENCY_HEADER } from '@/api/http'
 import { assertAvailable, findEdition, findNft, quoteStillValid } from '../commerce'
@@ -94,7 +94,25 @@ export const orderHandlers = [
       saveDb()
       for (const line of lines) publishNftUpdate(line.nftId)
       scheduleSettlement(order)
+      // The order exists, but the client never hears about it: only a retry
+      // with the same Idempotency-Key can recover it.
+      if (getScenario().orderTimeout) await delay('infinite')
       return HttpResponse.json(toOrder(order), { status: 201 })
+    }),
+  ),
+
+  /** Orders of the current user, optionally filtered by status (`?status=pending`). */
+  http.get(
+    '/api/orders',
+    withScenario('orders.read', ({ request }) => {
+      const user = requireUser(request)
+      const status = new URL(request.url).searchParams.get('status')
+      const own = Object.values(db().orders).filter((order) => order.userId === user.id)
+      for (const order of own) settleIfDue(order)
+      const orders = own
+        .filter((order) => !status || order.status === status)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      return HttpResponse.json(orders.map(toOrder))
     }),
   ),
 
