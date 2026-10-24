@@ -1,27 +1,13 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import {
+  checkoutAsNova,
   connectAndReview,
   expectPrimaryWallet,
+  leaveOrder,
   listOrders,
-  login,
   openCart,
-  openFresh,
-  selectEdition,
   setScenario,
-  users,
 } from './support/mock'
-
-/** One Emerald Ape (1/50) in the cart, then the checkout as Nova (login on the way). */
-async function checkoutAsNova(page: Page, scenario = 'default') {
-  await openFresh(page, '/nfts/emerald-ape-042', scenario)
-  await selectEdition(page, '1/50')
-  await page.getByRole('button', { name: 'Adicionar ao carrinho' }).click()
-  await expect(page.getByText('Emerald Ape #042 adicionado ao carrinho')).toBeVisible()
-  await page.goto('/checkout')
-  await login(page, users.nova)
-  await expect(page).toHaveURL('/checkout')
-  await expect(page.getByTestId('summary-total')).toHaveText('1.206 ETH')
-}
 
 test.describe('checkout', () => {
   test('validates the collector data and shows a review before sending', async ({ page }) => {
@@ -101,6 +87,7 @@ test.describe('checkout', () => {
     await expect(page).toHaveURL(/\/orders\/order-/)
     const orderUrl = page.url()
 
+    await leaveOrder(page)
     await openCart(page)
     const notice = page.getByRole('status').filter({ hasText: 'aguardando a confirmação da rede' })
     await expect(notice).toBeVisible()

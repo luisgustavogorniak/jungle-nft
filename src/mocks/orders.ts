@@ -91,6 +91,15 @@ export function resumePendingOrders() {
   for (const order of Object.values(db().orders)) scheduleSettlement(order)
 }
 
+/** Mock control: settles every pending order now, with its planned outcome. */
+export function settlePendingOrders() {
+  for (const order of Object.values(db().orders)) {
+    if (order.status !== 'pending') continue
+    clearTimeout(timers.get(order.id))
+    settle(order.id)
+  }
+}
+
 /** Settles synchronously if the deadline already passed (e.g. timer lost on reload). */
 export function settleIfDue(order: OrderRecord) {
   if (order.status === 'pending' && new Date(order.settleAt).getTime() <= Date.now()) settle(order.id)

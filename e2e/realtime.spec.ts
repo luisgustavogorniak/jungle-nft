@@ -1,5 +1,21 @@
 import { expect, test, type Page } from '@playwright/test'
-import { connectAndReview, login, openFresh, selectEdition, updateNft, updateNftWhileDisconnected, users } from './support/mock'
+import {
+  buyAsNova,
+  connectAndReview,
+  expectEventReceived,
+  expectSignedIn,
+  expectSignedOut,
+  leaveOrder,
+  login,
+  logout,
+  openFresh,
+  receivedEvents,
+  selectEdition,
+  settlePendingOrders,
+  updateNft,
+  updateNftWhileDisconnected,
+  users,
+} from './support/mock'
 
 const NFT_ID = 'emerald-ape-042'
 
@@ -63,6 +79,38 @@ test.describe('realtime', () => {
 
     await expect(notice(page)).toContainText('mudou de 1.19 ETH para 1.309 ETH', { timeout: 10_000 })
     await expect(page.getByTestId('summary-subtotal')).toHaveText('2.618 ETH')
+  })
+
+  test("after logout and another user's login, the previous user's order.updated never arrives", async ({ page }) => {
+    const orderId = await buyAsNova(page, 'slow-payment')
+    await expect(page.getByTestId('order-status')).toContainText('Aguardando a confirmação da rede')
+    await leaveOrder(page)
+
+    // Same page, no reload: the app itself must release Nova's socket.
+    await logout(page, users.nova.displayName)
+    await expectSignedOut(page)
+    await page.getByRole('link', { name: 'Entrar' }).click()
+    await login(page, users.leo)
+    await expectSignedIn(page, users.leo.displayName)
+
+    // Positive control: Leo's socket is connected and the probe records events.
+    await updateNft(page, 'golden-beat-207', { price: '2.00' })
+    await expectEventReceived(page, 'nft.updated', 'golden-beat-207')
+
+    // Nova's payment settles now: the server emits order.updated to Nova's sockets.
+    await settlePendingOrders(page)
+    // A later broadcast on the same connection arrives after anything sent before it.
+    await updateNft(page, 'golden-beat-207', { price: '2.10' })
+    await expect
+      .poll(async () => (await receivedEvents(page)).filter((e) => e.payload.resourceId === 'golden-beat-207').length)
+      .toBe(2)
+
+    const leaked = (await receivedEvents(page)).filter((e) => e.event === 'order.updated' && e.payload.resourceId === orderId)
+    expect(leaked).toHaveLength(0)
+
+    // And over REST the order does not exist for Leo.
+    await page.goto(`/orders/${orderId}`)
+    await expect(page.getByRole('heading', { name: 'Pedido não encontrado' })).toBeVisible()
   })
 
   test('after a reconnection the cart is reconciled with REST', async ({ page }) => {

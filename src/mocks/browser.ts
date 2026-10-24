@@ -2,12 +2,21 @@ import { setupWorker } from 'msw/browser'
 import { initDb, resetDb } from './db'
 import { handlers } from './handlers'
 import { updateNft, type NftChanges } from './nft-updates'
-import { resumePendingOrders } from './orders'
+import { resumePendingOrders, settlePendingOrders } from './orders'
 import { dropConnections } from './realtime'
 import { getScenarioName, setScenarioName } from './scenarios'
 import { expireAllSessions } from './utils'
 
 export const worker = setupWorker(...handlers)
+
+type ReceivedEvent = { event: string; payload: unknown; at: string }
+
+/**
+ * Test probe: every event the app's socket.io-client receives, whatever the
+ * user or connection. It lives only in the mock build and only observes, so
+ * tests can prove an event did NOT reach the client (e.g. after a user switch).
+ */
+const receivedEvents: ReceivedEvent[] = []
 
 declare global {
   interface Window {
@@ -19,6 +28,8 @@ declare global {
       expireSessions: () => void
       updateNft: (nftId: string, changes: NftChanges) => void
       dropConnections: () => void
+      settlePendingOrders: () => void
+      receivedEvents: () => ReceivedEvent[]
     }
   }
 }
@@ -58,7 +69,16 @@ export async function startMocking() {
     expireSessions: expireAllSessions,
     updateNft,
     dropConnections,
+    settlePendingOrders,
+    receivedEvents: () => structuredClone(receivedEvents),
   }
 
   await worker.start({ onUnhandledRequest: 'bypass', quiet: import.meta.env.PROD })
+
+  // Loaded only now: engine.io-client keeps the WebSocket constructor it finds
+  // when its module is evaluated, and only after start() is it MSW's.
+  const { socket } = await import('@/realtime/socket')
+  socket.onAny((event: string, payload: unknown) => {
+    receivedEvents.push({ event, payload, at: new Date().toISOString() })
+  })
 }

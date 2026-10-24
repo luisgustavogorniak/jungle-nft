@@ -186,3 +186,15 @@ The cart lives on the (mock) server, keyed by owner: `user:<id>` when authentica
 - **Desvio do Figma (D4):** os campos de carteira do form desktop (Nome do perfil, Endereço, ENS/secundária, Código de indicação, Nome ENS) são só leitura e vêm da `Wallet` cadastrada. Editar fica em Perfil/Carteiras, para o mesmo dado não ter duas fontes. "Tipo de carteira" virou a escolha da carteira cadastrada, e o rádio "Usar outra carteira?" saiu por ser redundante com ele. Ficam editáveis: nome de exibição, usuário, e-mail, rede e observação.
 - **Desvio do Figma (M4):** o form do colecionador aparece no mobile (o enunciado exige os dados), em uma coluna depois das carteiras. Sem tab bar no checkout, como em carrinho e detalhe. O menu ⋮ e "Trocar carteira" dos cards não foram feitos: os próprios cards trocam a carteira.
 - **Cenários:** `slow-payment` agora fica 8 s pendente (dá tempo de ver o estado e recarregar). `order-timeout` cria o pedido e não responde; a liquidação dele leva 15 s para o pedido ainda estar pendente quando o cliente desiste aos 10 s.
+
+## E7b: pedido e escopo
+
+- **Confirmação como modal no desktop (D5), página no mobile.** O modal é aberto pela própria rota `/orders/:id`. Por isso acesso direto e refresh funcionam: não existe estado de "modal aberto" fora da URL. Fechar leva ao início.
+- **Foco:** ao abrir, o foco vai para o título (`DialogTitle`), e o Radix prende o foco dentro do modal e fecha com Esc. O título é o `DialogTitle`, então o dialog tem nome acessível.
+- **Três estados com o mesmo layout:** confirmado (envelope "THANK YOU", hash, "Ver no Etherscan"), pendente (spinner, "Aguardando" no lugar do hash) e recusado (título em `destructive`, link para o carrinho). O recibo vem só do snapshot do pedido.
+- **"Ver no Etherscan" não é link:** o hash é simulado, então o botão fica `aria-disabled` com a dica "Transação simulada" (no hover e no foco, ligada por `aria-describedby`). O `explorerUrl` do contrato continua existindo, mas a UI não o usa.
+- **`Dialog` do shadcn adaptado à casca da Kurio:** overlay `black/60`, `surface-card`, X em primary, barra de 10px na base.
+- **Probe de eventos (só no mock):** `__kurioMock.receivedEvents()` registra, via `socket.onAny`, tudo o que o `socket.io-client` da app recebe. Ele só observa e existe apenas no build com mocks. É o que permite provar que um evento *não* chegou.
+- **O socket é carregado depois do `worker.start()`:** o `engine.io-client` guarda o construtor `WebSocket` quando o módulo é avaliado. Importar o socket no `browser.ts` antes do MSW iniciar fazia o cliente usar o WebSocket nativo e furar o mock. O probe usa `import()` dinâmico depois do start.
+- **`settlePendingOrders()`:** liquida os pendentes na hora, para os testes não dependerem de timer.
+

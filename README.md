@@ -55,7 +55,7 @@ Add query params to any URL. They are applied before the app starts and removed 
 | `?scenario=<name>` | Selects a network scenario. It persists across reloads until another one is chosen. |
 | `?mock-reset` | Restores the seed data (catalog, users, carts, favorites, wallets, orders). |
 
-Example: `http://localhost:5173/?scenario=slow&mock-reset`. In the browser console, `window.__kurioMock` exposes `reset()`, `setScenario(name)`, `getScenario()`, `expireSessions()`, `updateNft(nftId, { price?, editions? })` (changes the NFT and broadcasts `nft.updated` through Socket.IO) and `dropConnections()` (the mock server closes every socket; the client reconnects and reconciles with REST).
+Example: `http://localhost:5173/?scenario=slow&mock-reset`. In the browser console, `window.__kurioMock` exposes `reset()`, `setScenario(name)`, `getScenario()`, `expireSessions()`, `updateNft(nftId, { price?, editions? })` (changes the NFT and broadcasts `nft.updated` through Socket.IO) `dropConnections()` (the mock server closes every socket; the client reconnects and reconciles with REST), `settlePendingOrders()` (settles every pending order now and emits `order.updated` to its owner) and `receivedEvents()` (every event the app's `socket.io-client` received since the page loaded; a mock-only probe used by the E2E tests).
 
 ### Reproducing failure flows
 

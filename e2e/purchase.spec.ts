@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { connectAndReview, expectPrimaryWallet, login, openCart, openFresh, selectEdition, users } from './support/mock'
+import { connectAndReview, expectPrimaryWallet, leaveOrder, login, openCart, openFresh, selectEdition, users } from './support/mock'
 
 /** Catalog → detail → cart → login → checkout, stopping right after "Confirmar compra". */
 async function buyEmeraldApe(page: Page, scenario?: string) {
@@ -37,9 +37,14 @@ test.describe('purchase', () => {
     await expect(page.getByTestId('order-status')).toHaveText('Seus NFTs agora estão na sua carteira')
     await expect(page.getByTestId('order-total')).toHaveText('2.396 ETH')
     await expect(page.getByTestId('order-tx')).toHaveText(/^0x[0-9a-f]{4}…[0-9a-f]{4}$/)
-    await expect(page.getByRole('list', { name: 'Itens comprados' })).toContainText('Emerald Ape #042 (1/50) × 2 · 2.38 ETH')
+    const line = page.getByRole('list', { name: 'Itens comprados' }).getByRole('listitem')
+    await expect(line).toContainText('Emerald Ape #042')
+    await expect(line).toContainText('1/50')
+    await expect(line).toContainText('(x 2)')
+    await expect(line).toContainText('2.38 ETH')
 
     // Only the purchased items leave the cart.
+    await leaveOrder(page)
     await openCart(page)
     await expect(page.getByText('Seu carrinho está vazio.')).toBeVisible()
   })

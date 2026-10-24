@@ -7,7 +7,11 @@ type MockControls = {
   expireSessions: () => void
   updateNft: (nftId: string, changes: NftChanges) => void
   dropConnections: () => void
+  settlePendingOrders: () => void
+  receivedEvents: () => ReceivedEvent[]
 }
+
+export type ReceivedEvent = { event: string; payload: { resourceId?: string }; at: string }
 
 type NftChanges = { price?: string; editions?: { id: string; available: number }[] }
 
@@ -137,4 +141,49 @@ export async function listOrders(page: Page): Promise<{ id: string; status: stri
     const response = await fetch('/api/orders', { headers: { Authorization: `Bearer ${localStorage.getItem('kurio.token')}` } })
     return (await response.json()) as { id: string; status: string }[]
   })
+}
+
+/** Settles every pending order now: the mock emits `order.updated` to the owner's sockets. */
+export async function settlePendingOrders(page: Page) {
+  await page.evaluate(() => (window as unknown as { __kurioMock: MockControls }).__kurioMock.settlePendingOrders())
+}
+
+/** Events received by the app's socket.io-client since the page loaded (mock-only probe). */
+export async function receivedEvents(page: Page): Promise<ReceivedEvent[]> {
+  return page.evaluate(() => (window as unknown as { __kurioMock: MockControls }).__kurioMock.receivedEvents())
+}
+
+/** Waits until the client received an event of this type for this resource. */
+export async function expectEventReceived(page: Page, event: string, resourceId: string) {
+  await expect
+    .poll(async () => (await receivedEvents(page)).some((e) => e.event === event && e.payload.resourceId === resourceId))
+    .toBe(true)
+}
+
+/** One Emerald Ape (1/50) in the cart, then the checkout as Nova (login on the way). */
+export async function checkoutAsNova(page: Page, scenario = 'default') {
+  await openFresh(page, '/nfts/emerald-ape-042', scenario)
+  await selectEdition(page, '1/50')
+  await page.getByRole('button', { name: 'Adicionar ao carrinho' }).click()
+  await expect(page.getByText('Emerald Ape #042 adicionado ao carrinho')).toBeVisible()
+  await page.goto('/checkout')
+  await login(page, users.nova)
+  await expect(page).toHaveURL('/checkout')
+  await expect(page.getByTestId('summary-total')).toHaveText('1.206 ETH')
+}
+
+/** Checkout as Nova until the order page; returns the order id. */
+export async function buyAsNova(page: Page, scenario = 'default'): Promise<string> {
+  await checkoutAsNova(page, scenario)
+  await connectAndReview(page)
+  await page.getByRole('button', { name: 'Confirmar compra' }).click()
+  await expect(page).toHaveURL(/\/orders\/order-/)
+  return page.url().split('/orders/')[1]
+}
+
+/** Desktop shows the order in a modal: closing it goes to Início. Mobile has a page. */
+export async function leaveOrder(page: Page) {
+  if (isMobile(page)) return
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar' }).click()
+  await expect(page).toHaveURL('/')
 }
