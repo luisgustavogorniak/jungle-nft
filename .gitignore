@@ -31,3 +31,6 @@ docs/LEARNING.md
 # Playwright
 playwright-report/
 test-results/
+
+.tanstack/
+docs/figma/frames/
