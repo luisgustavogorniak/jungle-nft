@@ -123,13 +123,13 @@ export function requireUser(request: Request): UserRecord {
   return user
 }
 
-/** Authenticated user when the token is valid, otherwise null (guest). */
+/**
+ * The authenticated user, or null for a guest (no token at all). A token that is
+ * expired or unknown is a 401, never a silent downgrade to guest: the client has
+ * to learn its session is gone instead of seeing an empty cart.
+ */
 export function optionalUser(request: Request): UserRecord | null {
-  try {
-    return requireUser(request)
-  } catch {
-    return null
-  }
+  return readToken(request) ? requireUser(request) : null
 }
 
 /** Cart owner: the user when authenticated, the guest id otherwise. */
