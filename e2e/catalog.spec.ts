@@ -116,4 +116,14 @@ test.describe('catalog', () => {
     await expect(items(page)).toHaveCount(9)
     await expect(alert).toHaveCount(0)
   })
+
+  test('puts the search before the hero on mobile and inside the catalog on desktop', async ({ page }, testInfo) => {
+    await openFresh(page, '/')
+    const search = page.getByRole('searchbox', { name: 'Buscar NFTs' })
+    await expect(search).toHaveCount(1)
+    const hero = page.getByRole('heading', { level: 1 })
+    const [searchBox, heroBox] = [await search.boundingBox(), await hero.boundingBox()]
+    if (testInfo.project.name === 'mobile') expect(searchBox!.y).toBeLessThan(heroBox!.y)
+    else expect(searchBox!.y).toBeGreaterThan(heroBox!.y)
+  })
 })

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { errorMessage } from '@/lib/form-errors'
+import { useIsDesktop } from '@/lib/use-media-query'
 import { FeaturedNft } from '../home/featured-nft'
 import { FiltersPanel } from './filters-panel'
 import { NftCard, NftCardSkeleton } from './nft-card'
@@ -69,7 +70,7 @@ function CatalogSearchBox() {
       <Input
         id={SEARCH_INPUT_ID}
         type="search"
-        placeholder="Buscar por nome, coleção ou ID"
+        placeholder="Buscar NFTs ou coleções"
         value={value}
         onChange={(event) => setValue(event.target.value)}
         className="h-[45px] rounded-[10px] bg-card pl-12 font-bold md:rounded-md"
@@ -78,7 +79,52 @@ function CatalogSearchBox() {
   )
 }
 
+/** Search box plus the filters sheet (opened by the button below 1280px). On mobile it sits above the hero. */
+export function CatalogToolbar() {
+  const { search, update, clear } = useCatalogSearch()
+  const catalog = useQuery({ ...nftListQueryOptions(toListQuery(search)), placeholderData: keepPreviousData })
+  const data = catalog.data
+  const filterCount = activeFilterCount(search)
+  const panel = <FiltersPanel facets={data?.facets} search={search} onChange={update} onClear={clear} />
+
+  return (
+    <div className="flex gap-3">
+      <CatalogSearchBox />
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button
+            variant="pill"
+            size="icon-lg"
+            className="relative size-[45px] shrink-0 rounded-[14px] xl:hidden"
+            aria-label={filterCount > 0 ? `Filtros (${filterCount} ativos)` : 'Filtros'}
+          >
+            <SlidersHorizontal className="size-5" />
+            {filterCount > 0 && (
+              <span aria-hidden="true" className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
+                {filterCount}
+              </span>
+            )}
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-[340px] max-w-[90vw] overflow-y-auto bg-card">
+          <SheetHeader>
+            <SheetTitle>Filtros</SheetTitle>
+            <SheetDescription>As alterações são aplicadas na hora.</SheetDescription>
+          </SheetHeader>
+          <div className="px-4">{panel}</div>
+          <SheetFooter>
+            <SheetClose asChild>
+              <Button>{data ? `Ver ${data.total} ${data.total === 1 ? 'resultado' : 'resultados'}` : 'Ver resultados'}</Button>
+            </SheetClose>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
+}
+
 export function CatalogSection() {
+  const isDesktop = useIsDesktop()
   const { search, update, clear } = useCatalogSearch()
   const catalog = useQuery({
     ...nftListQueryOptions(toListQuery(search)),
@@ -111,38 +157,7 @@ export function CatalogSection() {
         </aside>
 
         <div className="grid min-w-0 content-start gap-6">
-          <div className="flex gap-3">
-            <CatalogSearchBox />
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button
-                  variant="pill"
-                  size="icon-lg"
-                  className="relative size-[45px] shrink-0 rounded-[14px] xl:hidden"
-                  aria-label={filterCount > 0 ? `Filtros (${filterCount} ativos)` : 'Filtros'}
-                >
-                  <SlidersHorizontal className="size-5" />
-                  {filterCount > 0 && (
-                    <span aria-hidden="true" className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
-                      {filterCount}
-                    </span>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[340px] max-w-[90vw] overflow-y-auto bg-card">
-                <SheetHeader>
-                  <SheetTitle>Filtros</SheetTitle>
-                  <SheetDescription>As alterações são aplicadas na hora.</SheetDescription>
-                </SheetHeader>
-                <div className="px-4">{panel}</div>
-                <SheetFooter>
-                  <SheetClose asChild>
-                    <Button>{data ? `Ver ${data.total} ${data.total === 1 ? 'resultado' : 'resultados'}` : 'Ver resultados'}</Button>
-                  </SheetClose>
-                </SheetFooter>
-              </SheetContent>
-            </Sheet>
-          </div>
+          {isDesktop && <CatalogToolbar />}
 
           <Tabs value={tab} onValueChange={(value) => update({ tab: value === 'all' ? undefined : (value as typeof tab) })} className="gap-6">
             <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
@@ -170,7 +185,7 @@ export function CatalogSection() {
               </div>
             </div>
 
-            <p role="status" className="text-sm text-copy">
+            <p role="status" className="text-sm text-copy max-md:sr-only">
               {data ? `${data.total} ${data.total === 1 ? 'NFT encontrado' : 'NFTs encontrados'}` : ' '}
               {catalog.isFetching && data ? ' · atualizando…' : ''}
             </p>
