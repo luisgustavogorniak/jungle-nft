@@ -55,6 +55,24 @@ const seeds: Seed[] = [
   { number: '138', base: 'Clay Ticket', price: '0.06', category: 'utility', network: 'ethereum', collection: 'Kurio Keys', attributes: ['Argila', 'Ingresso', 'Show'] },
 ]
 
+// Only four artworks exist; several NFTs share one, as in the layout.
+const arts = ['ape-green', 'gorilla-purple', 'gorilla-dark', 'orangutan'] as const
+type Art = (typeof arts)[number]
+
+// Mapping taken from the layout. The other NFTs rotate through the four artworks.
+const artByBase: Record<string, Art> = {
+  'Emerald Ape': 'ape-green',
+  'Obsidian Ape': 'ape-green', // same "Kurio Apes" collection
+  'Sage Nomad': 'gorilla-purple',
+  'Cosmic Bloom': 'gorilla-purple',
+  'Violet Nomad': 'gorilla-purple',
+  'Neon Vessel': 'gorilla-dark',
+  'Ivory Baron': 'gorilla-dark',
+  'Golden Beat': 'orangutan',
+  'Golden Frequency': 'orangutan',
+  'Golden Signal': 'orangutan',
+}
+
 const creators = ['Nova Sato', 'Iris Moreau', 'Kenji Alves', 'Lua Fontes', 'Theo Brandt', 'Maya Okafor']
 const editionLabels: Record<EditionId, string> = { '1-1': '1/1', '1-10': '1/10', '1-50': '1/50', open: 'ABERTA' }
 const editionSupply: Record<EditionId, number | null> = { '1-1': 1, '1-10': 10, '1-50': 50, open: null }
@@ -106,7 +124,7 @@ export function buildNftFixtures(): NftRecord[] {
       category: seed.category,
       network: seed.network,
       creator: index === 0 ? 'Nova Sato' : creators[index % creators.length],
-      imageFile: `${toSlug(seed.base)}.png`,
+      imageFile: `${artByBase[seed.base] ?? arts[index % arts.length]}.png`,
       price: seed.price,
       oldPrice: seed.oldPrice ?? null,
       rarity: seed.rare ? 'rare' : 'common',

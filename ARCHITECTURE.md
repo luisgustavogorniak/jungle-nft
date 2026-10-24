@@ -50,7 +50,7 @@ The layout uses different token IDs for the same NFT on different screens (Viole
 
 ### Images
 
-The mock stores only the image file name (`emerald-ape.png`), never a URL. URLs are resolved per response through `import.meta.glob('/src/assets/nfts/*')`. Vite fingerprints asset URLs per build, so a persisted URL would go stale, and a persisted placeholder would hide images added later.
+The layout has four artworks shared by several NFTs. The mock stores only the image file name (`ape-green.png`), never a URL. URLs are resolved per response through `import.meta.glob('/src/assets/nfts/*')`. Vite fingerprints asset URLs per build, so a persisted URL would go stale, and a persisted placeholder would hide images added later.
 
 ## Decisions
 

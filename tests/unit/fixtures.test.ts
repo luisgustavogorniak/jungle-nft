@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import { categoryIds, nftSchema, userSchema, walletSchema } from '@/api/contracts'
 import { compareEth } from '@/lib/eth'
@@ -14,8 +15,8 @@ describe('nft fixtures', () => {
     }
   })
 
-  it('have unique ids, token ids and image files', () => {
-    for (const key of ['id', 'tokenId', 'imageFile'] as const) {
+  it('have unique ids and token ids', () => {
+    for (const key of ['id', 'tokenId'] as const) {
       assert.equal(new Set(nfts.map((nft) => nft[key])).size, nfts.length, `duplicated ${key}`)
     }
   })
@@ -29,7 +30,29 @@ describe('nft fixtures', () => {
         ['Neon Vessel #552', '#0552', '1.99'],
       ],
     )
-    assert.equal(nfts[0].imageFile, 'emerald-ape.png')
+  })
+
+  it('use the artwork of the layout for the home grid', () => {
+    assert.deepEqual(
+      nfts.slice(0, 9).map((nft) => nft.imageFile),
+      [
+        'ape-green.png', // Emerald Ape
+        'gorilla-purple.png', // Sage Nomad
+        'gorilla-dark.png', // Neon Vessel
+        'gorilla-purple.png', // Cosmic Bloom
+        'gorilla-purple.png', // Violet Nomad
+        'gorilla-dark.png', // Ivory Baron
+        'orangutan.png', // Golden Beat
+        'orangutan.png', // Golden Frequency
+        'orangutan.png', // Golden Signal
+      ],
+    )
+  })
+
+  it('point every NFT to an existing image file', () => {
+    for (const nft of nfts) {
+      assert.ok(existsSync(new URL(`../../src/assets/nfts/${nft.imageFile}`, import.meta.url)), nft.imageFile)
+    }
   })
 
   it('cover every category and the price range of the layout', () => {
