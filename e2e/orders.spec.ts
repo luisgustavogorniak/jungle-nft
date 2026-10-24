@@ -2,32 +2,40 @@ import { expect, test } from '@playwright/test'
 import { buyAsNova, expectEventReceived, settlePendingOrders } from './support/mock'
 
 test.describe('orders', () => {
-  test('the desktop confirmation is a modal that survives direct access and refresh', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === 'mobile', 'mobile shows the receipt as a page')
+  test('the confirmation survives direct access and refresh: a modal on desktop, a page on mobile', async ({ page }) => {
+    const isDesktop = (page.viewportSize()?.width ?? 0) >= 768
     await buyAsNova(page)
 
+    // Desktop shows the receipt in a dialog; mobile shows it as the page itself.
     const dialog = page.getByRole('dialog', { name: 'Seus NFTs agora estão na sua carteira' })
-    await expect(dialog).toBeVisible()
-    await expect(dialog.getByRole('heading', { name: 'Seus NFTs agora estão na sua carteira' })).toBeFocused()
+    const receipt = isDesktop ? dialog : page.getByRole('main')
+    const title = receipt.getByRole('heading', { name: 'Seus NFTs agora estão na sua carteira' })
+    await expect(title).toBeVisible()
+    if (isDesktop) await expect(title).toBeFocused()
+    else await expect(page.getByRole('dialog')).toHaveCount(0)
 
-    // Direct access / refresh: the URL alone opens the modal, with focus inside it.
+    // Direct access / refresh: the URL alone brings the receipt back.
     await page.reload()
-    await expect(dialog).toBeVisible()
-    await expect(dialog.getByRole('heading', { name: 'Seus NFTs agora estão na sua carteira' })).toBeFocused()
+    await expect(title).toBeVisible()
+    if (isDesktop) await expect(title).toBeFocused()
+    else await expect(page.getByRole('dialog')).toHaveCount(0)
 
     // The transaction is simulated: no link to a real explorer.
-    const explorer = dialog.getByRole('button', { name: 'Ver no Etherscan' })
+    const explorer = receipt.getByRole('button', { name: 'Ver no Etherscan' })
     await expect(explorer).toHaveAttribute('aria-disabled', 'true')
     await expect(explorer).toHaveAccessibleDescription('Transação simulada')
-    await explorer.hover()
-    await expect(page.getByRole('tooltip', { name: 'Transação simulada' })).toBeVisible()
     await expect(page.getByRole('link', { name: /Etherscan/ })).toHaveCount(0)
 
-    // Focus stays trapped in the modal; Escape closes it.
-    for (let i = 0; i < 4; i++) await page.keyboard.press('Tab')
-    expect(await dialog.evaluate((node) => node.contains(document.activeElement))).toBe(true)
-    await page.keyboard.press('Escape')
-    await expect(page).toHaveURL('/')
+    if (isDesktop) {
+      await explorer.hover()
+      await expect(page.getByRole('tooltip', { name: 'Transação simulada' })).toBeVisible()
+
+      // Focus stays trapped in the modal; Escape closes it.
+      for (let i = 0; i < 4; i++) await page.keyboard.press('Tab')
+      expect(await dialog.evaluate((node) => node.contains(document.activeElement))).toBe(true)
+      await page.keyboard.press('Escape')
+      await expect(page).toHaveURL('/')
+    }
   })
 
   test('with a pending order, only its items leave the cart once it is confirmed', async ({ page }) => {

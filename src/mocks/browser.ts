@@ -1,9 +1,9 @@
 import { setupWorker } from 'msw/browser'
 import { initDb, resetDb } from './db'
 import { handlers } from './handlers'
-import { updateNft, type NftChanges } from './nft-updates'
+import { publishStaleNftUpdate, updateNft, type NftChanges } from './nft-updates'
 import { resumePendingOrders, settlePendingOrders } from './orders'
-import { dropConnections } from './realtime'
+import { dropConnections, replayLastEvent } from './realtime'
 import { getScenarioName, setScenarioName } from './scenarios'
 import { expireAllSessions } from './utils'
 
@@ -28,6 +28,8 @@ declare global {
       expireSessions: () => void
       updateNft: (nftId: string, changes: NftChanges) => void
       dropConnections: () => void
+      replayLastEvent: () => void
+      emitStaleNftUpdate: (nftId: string, price: string) => void
       settlePendingOrders: () => void
       receivedEvents: () => ReceivedEvent[]
     }
@@ -69,6 +71,8 @@ export async function startMocking() {
     expireSessions: expireAllSessions,
     updateNft,
     dropConnections,
+    replayLastEvent,
+    emitStaleNftUpdate: publishStaleNftUpdate,
     settlePendingOrders,
     receivedEvents: () => structuredClone(receivedEvents),
   }

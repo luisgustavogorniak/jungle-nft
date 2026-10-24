@@ -7,6 +7,8 @@ type MockControls = {
   expireSessions: () => void
   updateNft: (nftId: string, changes: NftChanges) => void
   dropConnections: () => void
+  replayLastEvent: () => void
+  emitStaleNftUpdate: (nftId: string, price: string) => void
   settlePendingOrders: () => void
   receivedEvents: () => ReceivedEvent[]
 }
@@ -120,6 +122,33 @@ export async function updateNftWhileDisconnected(page: Page, nftId: string, chan
     },
     [nftId, changes] as const,
   )
+}
+
+/** The server delivers its last event a second time, same `eventId`. */
+export async function replayLastEvent(page: Page) {
+  await page.evaluate(() => (window as unknown as { __kurioMock: MockControls }).__kurioMock.replayLastEvent())
+}
+
+/** The server delivers an older state of an NFT late (lower version, new `eventId`). */
+export async function emitStaleNftUpdate(page: Page, nftId: string, price: string) {
+  await page.evaluate(
+    ([id, value]) => (window as unknown as { __kurioMock: MockControls }).__kurioMock.emitStaleNftUpdate(id, value),
+    [nftId, price] as const,
+  )
+}
+
+/** Drops the socket and settles the pending payments while it is down: the `order.updated` is lost. */
+export async function settlePendingOrdersWhileDisconnected(page: Page) {
+  await page.evaluate(() => {
+    const mock = (window as unknown as { __kurioMock: MockControls }).__kurioMock
+    mock.dropConnections()
+    mock.settlePendingOrders()
+  })
+}
+
+/** How many events of this type the client has received for this resource. */
+export async function countEvents(page: Page, event: string, resourceId: string) {
+  return (await receivedEvents(page)).filter((e) => e.event === event && e.payload.resourceId === resourceId).length
 }
 
 /** The primary wallet comes selected: a select on desktop, a card on mobile. */

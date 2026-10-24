@@ -2,16 +2,21 @@ import { expect, test, type Page } from '@playwright/test'
 import {
   buyAsNova,
   connectAndReview,
+  countEvents,
+  emitStaleNftUpdate,
   expectEventReceived,
   expectSignedIn,
   expectSignedOut,
   leaveOrder,
+  listOrders,
   login,
   logout,
   openFresh,
   receivedEvents,
+  replayLastEvent,
   selectEdition,
   settlePendingOrders,
+  settlePendingOrdersWhileDisconnected,
   updateNft,
   updateNftWhileDisconnected,
   users,
@@ -111,6 +116,71 @@ test.describe('realtime', () => {
     // And over REST the order does not exist for Leo.
     await page.goto(`/orders/${orderId}`)
     await expect(page.getByRole('heading', { name: 'Pedido não encontrado' })).toBeVisible()
+  })
+
+  test('an edition that sells out during the checkout is announced and blocks the confirmation', async ({ page }) => {
+    await cartWithEmeraldApe(page)
+    await page.getByRole('link', { name: 'Conectar e finalizar' }).click()
+    await login(page, users.nova)
+    await connectAndReview(page)
+    await expect(page.getByRole('button', { name: 'Confirmar compra' })).toBeEnabled()
+
+    await updateNft(page, NFT_ID, { editions: [{ id: '1-50', available: 0 }] })
+
+    await expect(notice(page)).toContainText('Emerald Ape #042 (1/50) esgotou')
+    await expect(page.getByRole('button', { name: 'Confirmar compra' })).toBeDisabled()
+  })
+
+  test('a duplicated event is delivered but its effects are not applied twice', async ({ page }) => {
+    await cartWithEmeraldApe(page)
+    await updateNft(page, NFT_ID, { price: '1.50' })
+    await expect(notice(page)).toContainText('mudou de 1.19 ETH para 1.50 ETH')
+    await page.getByRole('button', { name: 'Fechar aviso' }).click()
+    await expect(notice(page)).toHaveText('')
+    expect(await countEvents(page, 'nft.updated', NFT_ID)).toBe(1)
+
+    // Same eventId, delivered again through the socket.
+    await replayLastEvent(page)
+    await expect.poll(() => countEvents(page, 'nft.updated', NFT_ID)).toBe(2)
+
+    // The client dropped it: no new announcement, same summary.
+    await expect(notice(page)).toHaveText('')
+    await expect(page.getByTestId('summary-subtotal')).toHaveText('3.00 ETH')
+
+    // Positive control: a genuinely new event still goes through.
+    await updateNft(page, NFT_ID, { price: '1.60' })
+    await expect(notice(page)).toContainText('mudou de 1.50 ETH para 1.60 ETH')
+    await expect(page.getByTestId('summary-subtotal')).toHaveText('3.20 ETH')
+  })
+
+  test('an event older than the current state never rolls it back', async ({ page }) => {
+    await cartWithEmeraldApe(page)
+    await updateNft(page, NFT_ID, { price: '1.50' })
+    await expect(page.getByTestId('summary-subtotal')).toHaveText('3.00 ETH')
+    await page.getByRole('button', { name: 'Fechar aviso' }).click()
+
+    // A late delivery of an older version (new eventId) with a much lower price.
+    await emitStaleNftUpdate(page, NFT_ID, '0.10')
+    await expect.poll(() => countEvents(page, 'nft.updated', NFT_ID)).toBe(2)
+
+    await expect(notice(page)).toHaveText('')
+    await expect(page.getByTestId('summary-subtotal')).toHaveText('3.00 ETH')
+    await page.reload()
+    await expect(page.getByTestId('summary-subtotal')).toHaveText('3.00 ETH')
+  })
+
+  test('a pending order settled while the socket is down is recovered after reconnecting, without a second order', async ({ page }) => {
+    const orderId = await buyAsNova(page, 'slow-payment')
+    await expect(page.getByTestId('order-status')).toContainText('Aguardando a confirmação da rede')
+
+    // The payment settles on the server while the client is offline: the order.updated is lost.
+    await settlePendingOrdersWhileDisconnected(page)
+
+    // socket.io-client reconnects by itself and the active order is read again from REST.
+    await expect(page.getByTestId('order-status')).toHaveText('Seus NFTs agora estão na sua carteira', { timeout: 10_000 })
+    const orders = await listOrders(page)
+    expect(orders).toHaveLength(1)
+    expect(orders[0]).toMatchObject({ id: orderId, status: 'confirmed' })
   })
 
   test('after a reconnection the cart is reconciled with REST', async ({ page }) => {

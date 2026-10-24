@@ -41,6 +41,25 @@ export function updateNft(nftId: string, changes: NftChanges) {
   publishNftUpdate(nftId)
 }
 
+/**
+ * Mock control: a late delivery of an older state. It carries a new `eventId`
+ * but a version below the current one, so only the version check can reject it.
+ * The record is untouched: REST keeps answering with the current state.
+ */
+export function publishStaleNftUpdate(nftId: string, price: string) {
+  const nft = findNft(nftId)
+  if (!nft) throw new Error(`Unknown NFT "${nftId}"`)
+  const event: NftUpdatedEvent = {
+    eventId: nextEventId(),
+    type: 'nft.updated',
+    resourceId: nft.id,
+    version: nft.version - 1,
+    occurredAt: new Date().toISOString(),
+    data: { price, oldPrice: nft.oldPrice, editions: nft.editions.map(({ id, available }) => ({ id, available })) },
+  }
+  broadcast('nft.updated', event)
+}
+
 let priceChangeArmed = true
 
 /**

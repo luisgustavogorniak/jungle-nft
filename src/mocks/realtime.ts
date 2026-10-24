@@ -32,6 +32,7 @@ function userIdFromConnectPacket(raw: string): string | null {
 
 /** Private events reach only the sockets authenticated as this user. */
 export function emitToUser(userId: string, event: string, payload: unknown) {
+  lastDelivery = { userId, event, payload }
   for (const connection of connections) {
     if (connection.userId === userId) connection.io.client.emit(event, payload)
   }
@@ -39,7 +40,18 @@ export function emitToUser(userId: string, event: string, payload: unknown) {
 
 /** Public events (catalog changes) reach every connected client. */
 export function broadcast(event: string, payload: unknown) {
+  lastDelivery = { userId: null, event, payload }
   for (const connection of connections) connection.io.client.emit(event, payload)
+}
+
+let lastDelivery: { userId: string | null; event: string; payload: unknown } | null = null
+
+/** Delivers the last event again, same `eventId` and all (mock control for duplicate delivery). */
+export function replayLastEvent() {
+  if (!lastDelivery) return
+  const { userId, event, payload } = lastDelivery
+  if (userId) emitToUser(userId, event, payload)
+  else broadcast(event, payload)
 }
 
 /**
