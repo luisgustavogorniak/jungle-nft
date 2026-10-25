@@ -54,7 +54,7 @@ function RootLayout() {
       <div
         id="main"
         tabIndex={-1}
-        className={cn('outline-none md:min-h-[calc(100svh-5rem)]', hasTabBar(pathname) && 'pb-28 md:pb-0')}
+        className={cn('outline-none md:min-h-[calc(100svh-5rem)]', hasTabBar(pathname) && 'pb-[calc(8rem+env(safe-area-inset-bottom))] md:pb-0')}
       >
         <Outlet />
       </div>

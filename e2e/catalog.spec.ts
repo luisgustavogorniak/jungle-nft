@@ -126,4 +126,12 @@ test.describe('catalog', () => {
     if (testInfo.project.name === 'mobile') expect(searchBox!.y).toBeLessThan(heroBox!.y)
     else expect(searchBox!.y).toBeGreaterThan(heroBox!.y)
   })
+
+  test('the tab bar "Explorar" button focuses the search', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'the tab bar only exists on mobile')
+    await openFresh(page, '/')
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+    await page.getByRole('button', { name: 'Explorar' }).click()
+    await expect(page.getByRole('searchbox', { name: 'Buscar NFTs' })).toBeFocused()
+  })
 })
