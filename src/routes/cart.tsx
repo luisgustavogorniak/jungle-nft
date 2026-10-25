@@ -36,7 +36,7 @@ function CartPage() {
 
   return (
     <main>
-      <Container className="grid gap-6 py-4 md:gap-4 md:py-6">
+      <Container className="grid gap-6 py-4 max-md:pb-0 md:gap-4 md:py-6">
         <div className="grid grid-cols-[35px_1fr_35px] items-center md:block">
           <Button
             type="button"
@@ -84,7 +84,7 @@ function CartPage() {
         )}
 
         {hasItems && (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_332px] lg:gap-x-[86px] lg:gap-y-8">
+          <div className="grid gap-6 max-md:min-h-[calc(100dvh-4.75rem)] max-md:grid-rows-[1fr_auto] lg:grid-cols-[minmax(0,1fr)_332px] lg:gap-x-[86px] lg:gap-y-8">
             <section aria-labelledby="items-title" className="grid content-start gap-3">
               <h2 id="items-title" className="sr-only">
                 Itens do carrinho
@@ -110,7 +110,7 @@ function CartPage() {
 
             <section
               aria-labelledby="summary-title"
-              className="grid content-start gap-5 max-md:-mx-6 max-md:rounded-t-[40px] max-md:bg-card max-md:px-6 max-md:pt-6 max-md:pb-8 max-md:shadow-card"
+              className="grid content-start gap-5 max-md:sticky max-md:bottom-0 max-md:z-30 max-md:-mx-6 max-md:max-h-[75dvh] max-md:overflow-y-auto max-md:rounded-t-[40px] max-md:bg-card max-md:px-6 max-md:pt-6 max-md:pb-[max(2rem,env(safe-area-inset-bottom))] max-md:shadow-tabbar"
             >
               <h2 id="summary-title" className="border-b border-border pb-3 text-lg font-bold max-md:sr-only">
                 Resumo da carteira

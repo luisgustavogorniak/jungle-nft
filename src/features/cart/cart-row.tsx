@@ -26,8 +26,8 @@ function useLineActions(item: CartItem) {
 
 function RemoveButton({ name, onClick, disabled }: { name: string; onClick: () => void; disabled: boolean }) {
   return (
-    <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remover ${name} do carrinho`} disabled={disabled} onClick={onClick}>
-      <Trash2 className="size-5 text-copy" />
+    <Button type="button" variant="ghost" size="icon-sm" className="max-md:size-6" aria-label={`Remover ${name} do carrinho`} disabled={disabled} onClick={onClick}>
+      <Trash2 className="size-5 text-copy max-md:size-[18px]" />
     </Button>
   )
 }
