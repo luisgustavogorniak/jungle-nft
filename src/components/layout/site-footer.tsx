@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Gem, Mail, Phone, ShieldCheck, Zap } from 'lucide-react'
+import { Bell, Mail, Phone, ShieldCheck, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,9 +10,9 @@ import { OutOfScopeLink } from './out-of-scope'
 const linkClass = 'text-left text-sm leading-[30px] text-foreground hover:text-highlight'
 
 const features = [
-  { icon: ShieldCheck, title: 'Propriedade verificada', text: 'Cada NFT tem procedência registrada na rede e metadados imutáveis.' },
-  { icon: Zap, title: 'Compra rápida', text: 'Conecte sua carteira e finalize em poucos cliques, com taxas claras.' },
-  { icon: Gem, title: 'Edições selecionadas', text: 'Obras de criadores emergentes e consagrados, em edições limitadas.' },
+  { icon: ShieldCheck, title: 'Segurança da carteira', text: 'Proteja sua carteira e colecione arte digital verificada com confiança.' },
+  { icon: Users, title: 'Criadores em destaque', text: 'Conheça artistas, estúdios e comunidades que moldam a cultura digital na rede.' },
+  { icon: Bell, title: 'Alertas de lançamentos', text: 'Receba calendários de cunhagem, novidades de listas de acesso e análises do mercado.' },
 ]
 
 const socials = [
@@ -53,7 +53,7 @@ function Newsletter() {
           type="email"
           inputMode="email"
           autoComplete="email"
-          placeholder="Seu melhor e-mail"
+          placeholder="digite seu e-mail..."
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           className="h-10 rounded-r-none rounded-l-md border-0 bg-deep"
@@ -62,7 +62,9 @@ function Newsletter() {
           Enviar
         </Button>
       </div>
-      <p className="text-[13px] leading-[22px] text-copy">Receba avisos de lançamentos e coleções. Sem spam.</p>
+      <p className="text-[13px] leading-[22px] text-copy">
+        Receba lançamentos selecionados, histórias de criadores e novidades do mercado.
+      </p>
     </form>
   )
 }

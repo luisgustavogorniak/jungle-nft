@@ -342,6 +342,22 @@ CLS no desktop, medido com um probe de `layout-shift` antes e depois: início 0,
 | "Igual à carteira principal" como rádio | Checkbox; ao marcar, copia os dados | Pode ser desmarcado |
 | Perfil e senha em um só "Salvar" | Botões próprios ("Salvar" e "Alterar senha") | O erro de um não bloqueia o outro |
 | Input "Nome de usuário" com placeholder centralizado | Alinhado à esquerda | Inconsistência do frame |
+| Textos de estado não desenhados (carregando, vazio, erro, esgotado, toasts, sessão expirada, pedido em andamento) | Textos próprios, no tom do layout | Estados exigidos pelo enunciado |
+| Header: só "Entrar" (estado logado não desenhado) | Nome do usuário e "Sair" | O design deixa em aberto; o logout é um fluxo obrigatório |
+| Início desktop: só o ícone de busca no header | Barra de busca acima das abas; o ícone do header leva a ela | A busca textual é exigida pelo enunciado |
+| Início: opções de ordenação não definidas | "Listados recentemente", "Menor preço", "Maior preço", "Mais populares" | Lista sugerida pelo `design.md` |
+| Início: texto do segundo promo cortado no card | Frase completada e limitada a poucas linhas (`line-clamp`) | O texto do frame vaza do card |
+| Detalhe: a descrição cita "Kurio Editions" e a meta "Kurio Apes" | O Emerald Ape #042 usa os textos do frame ao pé da letra; os demais usam a coleção de cada NFT (`description`, `details` e `contract` vêm da API) | O frame se contradiz; o NFT desenhado fica idêntico e os outros ficam coerentes |
+| Detalhe, aba: "Contrato" traz os 5% de direitos e "Direitos autorais" traz o endereço | Cada rótulo com o seu conteúdo: "Contrato" mostra o endereço ERC-721 e "Direitos autorais" os 5% | Os conteúdos estão trocados no frame |
+| Detalhe, aba: o parágrafo cita "1/50" | Só o Emerald Ape #042 cita a edição; os demais omitem | A edição muda com a seleção, e o texto vem da API |
+| Carrinho: valores "00.00" | `0.00`, o formato de todos os valores em ETH | Inconsistência do frame (`formatEth`) |
+| Pagamento: selects começam em "Selecione uma rede/carteira" | Rede e carteira principal já selecionadas | Menos cliques para o caso comum (QA manual) |
+| Pagamento: só "Confirmar compra" | Etapas "Conectar carteira", "Revisar pedido" e "Confirmar compra", com "Editar dados" e "Desconectar" | Conexão da carteira e revisão antes do envio exigidas pelo enunciado (§8) |
+| Pagamento: primeira opção só com o chip "METAMASK • WALLETCONNECT • COINBASE" | "WalletConnect" com o chip | A opção precisa de nome; o frame mobile mostra que é a WalletConnect |
+| Pagamento e recibo: "ID do token: #0042" | "ID do token: #0042 · Edição: 1/50" | O mesmo NFT pode estar em edições diferentes |
+| Perfil: sem texto de ajuda do avatar | "PNG, JPG ou WebP, até 5 MB." | O upload tem limites que o usuário precisa conhecer |
+| Perfil: campos de senha sem asterisco | Com asterisco | São obrigatórios para trocar a senha |
+| Carteiras: "Adicionar" ao lado de "Carteira principal" | Não feito | O formulário da principal fica sempre aberto; o link não teria ação |
 
 Os ajustes de acessibilidade em relação ao layout (foco visível em todo controle, avisos `aria-live`, "Pular para o conteúdo", rótulos e erros associados) estão na seção 12.
 

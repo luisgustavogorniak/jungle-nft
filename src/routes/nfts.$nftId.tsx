@@ -326,21 +326,23 @@ function DetailTabs({ nft }: { nft: Nft }) {
         <TabsTrigger value="reviews">Avaliações de colecionadores ({nft.reviewsCount})</TabsTrigger>
       </TabsList>
       <TabsContent value="details" className="grid gap-4 text-sm leading-6 text-copy">
-        <p>
-          {nft.name} é uma obra digital de {nft.creator} da coleção {nft.collection}. Cada atributo fica armazenado nos metadados do
-          token e verificado na {network}.
-        </p>
+        <p>{nft.details}</p>
         <p>
           A propriedade inclui a arte em alta resolução, lançamentos exclusivos para colecionadores e um registro permanente de
-          procedência registrada na rede.
+          procedência registrada na rede. {nft.creator} recebe 5% de direitos autorais nas vendas secundárias, apoiando novos
+          trabalhos e lançamentos da comunidade.
         </p>
         <div>
           <h3 className="font-bold text-foreground">Rede:</h3>
           <p>Cunhado na {network} com procedência imutável e metadados armazenados no IPFS.</p>
         </div>
         <div>
-          <h3 className="font-bold text-foreground">Atributos:</h3>
-          <p>{nft.attributes.join(', ')}</p>
+          <h3 className="font-bold text-foreground">Contrato:</h3>
+          <p>{nft.contract} • Contrato inteligente ERC-721 verificado.</p>
+        </div>
+        <div>
+          <h3 className="font-bold text-foreground">Direitos autorais:</h3>
+          <p>Direitos autorais do criador: 5% nas vendas secundárias, pagos automaticamente pelos mercados compatíveis.</p>
         </div>
       </TabsContent>
       <TabsContent value="reviews" className="text-sm text-copy">

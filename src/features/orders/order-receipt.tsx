@@ -122,7 +122,7 @@ export function OrderReceipt({
                 <span className="min-w-0">
                   <span className="block truncate font-bold">{line.name}</span>
                   <span className="block text-xs text-copy">
-                    ID do token: {line.tokenId} · {line.editionLabel}
+                    ID do token: {line.tokenId} · Edição: {line.editionLabel}
                   </span>
                 </span>
               </span>
@@ -149,8 +149,7 @@ export function OrderReceipt({
         {order.status === 'confirmed' && (
           <>
             <p className="max-w-[460px]">
-              Transação confirmada na {networkLabels[order.network]}. A propriedade foi transferida para sua carteira{' '}
-              {shortAddress(order.walletAddress)} e registrada na rede.
+              Transação confirmada na {networkLabels[order.network]}. A propriedade foi transferida para sua carteira conectada e registrada na rede.
             </p>
             {/* The hash is simulated: a real explorer link would lead nowhere. */}
             <span className="group relative">

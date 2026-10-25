@@ -90,7 +90,7 @@ export function WalletCards({
           <span className="grid gap-0.5">
             <span className="font-bold">{wallet.nickname}</span>
             <span className="text-sm text-copy">{shortAddress(wallet.address)}</span>
-            <span className="text-sm text-copy">Rede {networkLabels[wallet.network]}</span>
+            <span className="text-sm text-copy">Rede {wallet.network === 'ethereum' ? 'principal ' : ''}{networkLabels[wallet.network]}</span>
           </span>
         </label>
       ))}

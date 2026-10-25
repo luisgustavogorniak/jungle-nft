@@ -420,7 +420,7 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
           {collectorFields}
           {networkField}
           <TextField label="Nome do perfil" readOnly value={wallet.profileName} className="text-copy" />
-          <TextField label="Endereço da carteira" readOnly value={wallet.address} className="text-copy" />
+          <TextField label="Endereço da carteira" placeholder="Endereço 0x da carteira" readOnly value={wallet.address} className="text-copy" />
           <TextField
             label="ENS ou carteira secundária (opcional)"
             readOnly

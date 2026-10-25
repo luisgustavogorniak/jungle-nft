@@ -6,7 +6,7 @@ import { demoFavorites, demoPassword, demoUsers, demoWallets, type UserRecord } 
 
 const STORAGE_KEY = 'kurio.mock.db'
 // Bump when the shape or the fixtures change: stale persisted state is discarded.
-const SCHEMA_VERSION = 3
+const SCHEMA_VERSION = 4
 
 export type SessionRecord = { token: string; userId: string; expiresAt: string }
 export type CartRecord = { items: CartItemInput[]; updatedAt: string }

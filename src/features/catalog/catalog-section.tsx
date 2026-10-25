@@ -36,6 +36,7 @@ const GRID = 'grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-6 md:gap-
 
 /** Search as you type: the URL is updated after a pause, or immediately on Enter. */
 function CatalogSearchBox() {
+  const isDesktop = useIsDesktop()
   const { search, update } = useCatalogSearch()
   const [value, setValue] = useState(search.q ?? '')
   const committed = useRef(search.q ?? '')
@@ -70,7 +71,7 @@ function CatalogSearchBox() {
       <Input
         id={SEARCH_INPUT_ID}
         type="search"
-        placeholder="Buscar NFTs ou coleções"
+        placeholder={isDesktop ? 'Buscar NFTs ou coleções' : 'Explorar coleções'}
         value={value}
         onChange={(event) => setValue(event.target.value)}
         className="h-[45px] rounded-[10px] bg-card pl-12 font-bold md:rounded-md"

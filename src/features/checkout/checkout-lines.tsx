@@ -24,7 +24,7 @@ export function CheckoutLines({ quote, items }: { quote: Quote; items: CartItem[
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-bold">{item?.name ?? line.nftId}</span>
                 <span className="block text-sm text-copy">
-                  ID do token: {item?.tokenId} · {item?.editionLabel}
+                  ID do token: {item?.tokenId} · Edição: {item?.editionLabel}
                 </span>
               </span>
               <span className="text-sm text-copy">(x {line.quantity})</span>

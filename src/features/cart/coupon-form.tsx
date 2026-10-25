@@ -38,7 +38,7 @@ export function CouponForm({ quote }: { quote: Quote | undefined }) {
 
   return (
     <div className="grid gap-2">
-      <label htmlFor={id} className="text-sm font-bold">
+      <label htmlFor={id} className="text-sm font-bold sr-only md:not-sr-only">
         Código promocional
       </label>
       <form

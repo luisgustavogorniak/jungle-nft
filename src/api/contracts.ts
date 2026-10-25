@@ -73,7 +73,9 @@ export const nftSchema = z.object({
   id: z.string(), // "emerald-ape-042"
   tokenId: z.string(), // "#0042"
   name: z.string(),
-  description: z.string(),
+  description: z.string(), // "Sobre este NFT"
+  details: z.string(), // first paragraph of the details tab
+  contract: z.string(), // shortened ERC-721 address
   collection: z.string(),
   category: categorySchema,
   network: networkSchema,

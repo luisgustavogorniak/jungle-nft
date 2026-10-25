@@ -73,6 +73,14 @@ const artByBase: Record<string, Art> = {
   'Golden Signal': 'orangutan',
 }
 
+const networkNames: Record<NetworkId, string> = { ethereum: 'Ethereum', polygon: 'Polygon', solana: 'Solana' }
+
+/** Deterministic fake address in the shortened "0x7A42...19E8" form. */
+function contractAddress(seed: number): string {
+  const hex = (n: number) => (n % 0x10000).toString(16).toUpperCase().padStart(4, '0')
+  return `0x${hex(seed * 40503 + 7)}...${hex(seed * 52711 + 19)}`
+}
+
 const creators = ['Nova Sato', 'Iris Moreau', 'Kenji Alves', 'Lua Fontes', 'Theo Brandt', 'Maya Okafor']
 const editionLabels: Record<EditionId, string> = { '1-1': '1/1', '1-10': '1/10', '1-50': '1/50', open: 'ABERTA' }
 const editionSupply: Record<EditionId, number | null> = { '1-1': 1, '1-10': 10, '1-50': 50, open: null }
@@ -117,9 +125,16 @@ export function buildNftFixtures(): NftRecord[] {
       id: toSlug(name),
       tokenId: `#${seed.number.padStart(4, '0')}`,
       name,
+      // The first NFT is the one drawn in the layout: its copy is the layout's, word for word.
       description:
-        `${name} é uma obra digital finalizada à mão da coleção ${seed.collection}. ` +
-        'Cada atributo fica armazenado nos metadados do token e verificado na rede, com arte desbloqueável e acesso para colecionadores.',
+        index === 0
+          ? 'Um colecionável digital finalizado à mão da coleção Kurio Editions, verificado na Ethereum, com arte desbloqueável e acesso para colecionadores.'
+          : `Um colecionável digital finalizado à mão da coleção ${seed.collection}, verificado na ${networkNames[seed.network]}, com arte desbloqueável e acesso para colecionadores.`,
+      details:
+        index === 0
+          ? `${name} é uma obra digital 1/50 finalizada à mão da coleção Kurio Editions. Cada atributo fica armazenado nos metadados do token e verificado na Ethereum. A obra explora identidade, movimento e luz em um mundo digital sem fronteiras.`
+          : `${name} é uma obra digital finalizada à mão da coleção ${seed.collection}. Cada atributo fica armazenado nos metadados do token e verificado na ${networkNames[seed.network]}. A obra explora identidade, movimento e luz em um mundo digital sem fronteiras.`,
+      contract: index === 0 ? '0x7A42...19E8' : contractAddress(Number(seed.number)),
       collection: seed.collection,
       category: seed.category,
       network: seed.network,

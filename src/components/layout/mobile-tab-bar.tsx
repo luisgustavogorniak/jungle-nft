@@ -5,7 +5,7 @@ import { useCartCount } from '@/features/cart/queries'
 import { useSession } from '@/features/auth/session'
 
 const item =
-  'relative flex min-w-16 flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-xs text-foreground [&.active]:text-highlight [&.active]:font-bold'
+  'relative flex min-w-16 flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-foreground [&.active]:text-highlight [&.active]:font-bold'
 
 /**
  * Mobile navigation (below 768px), replacing the desktop header as in the layout.
@@ -25,15 +25,13 @@ export function MobileTabBar() {
     >
       <ul className="flex items-center justify-around">
         <li>
-          <Link to="/" activeOptions={{ exact: true }} className={item}>
-            <House className="size-6" />
-            Início
+          <Link to="/" activeOptions={{ exact: true }} aria-label="Início" className={item}>
+            <House aria-hidden="true" className="size-6" />
           </Link>
         </li>
         <li>
-          <Link to="/favorites" className={item}>
-            <Heart className="size-6" />
-            Favoritos
+          <Link to="/favorites" aria-label="Favoritos" className={item}>
+            <Heart aria-hidden="true" className="size-6" />
           </Link>
         </li>
         <li>
@@ -42,7 +40,7 @@ export function MobileTabBar() {
             aria-label={cartCount > 0 ? `Carrinho (${cartCount} ${cartCount === 1 ? 'item' : 'itens'})` : 'Carrinho'}
             className={item}
           >
-            <ShoppingBag className="size-6" />
+            <ShoppingBag aria-hidden="true" className="size-6" />
             {cartCount > 0 && (
               <span
                 aria-hidden="true"
@@ -51,19 +49,16 @@ export function MobileTabBar() {
                 {cartCount}
               </span>
             )}
-            Carrinho
           </Link>
         </li>
         <li>
           {user ? (
             <Link to="/profile" aria-label={`Meu perfil (${user.displayName})`} className={item}>
-              <User className="size-6" />
-              Perfil
+              <User aria-hidden="true" className="size-6" />
             </Link>
           ) : (
             <Link to="/login" search={{ redirect: undefined, reason: undefined }} aria-label="Entrar" className={item}>
-              <User className="size-6" />
-              Entrar
+              <User aria-hidden="true" className="size-6" />
             </Link>
           )}
         </li>

@@ -68,7 +68,7 @@ function CheckboxGroup<T extends string>({
               className={`flex flex-1 cursor-pointer items-center justify-between gap-2 text-[15px] leading-10 ${checked ? 'text-highlight' : 'text-copy'}`}
             >
               <span>{labels[option]}</span>
-              <span className="min-w-[2ch] text-right font-bold">{counts?.[option] ?? ''}</span>
+              <span className="min-w-[4ch] text-right font-bold">{counts ? `(${counts[option] ?? 0})` : ''}</span>
             </label>
           </div>
         )

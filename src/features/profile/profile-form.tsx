@@ -81,6 +81,10 @@ export function ProfileForm({ user }: { user: User }) {
         />
         <TextField label="Nome ENS" placeholder="nome.eth" error={errors.ensName?.message} {...form.register('ensName')} />
         <TextField label="Apelido da carteira" error={errors.walletNickname?.message} {...form.register('walletNickname')} />
+        <div role="group" aria-labelledby="avatar-label" className="grid gap-1.5">
+        <p id="avatar-label" className="text-sm leading-none font-medium">
+          Avatar
+        </p>
         <div className="flex items-center gap-4">
           <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card">
             {avatarUrl ? (
@@ -123,6 +127,7 @@ export function ProfileForm({ user }: { user: User }) {
               </p>
             )}
           </div>
+        </div>
         </div>
       </div>
 

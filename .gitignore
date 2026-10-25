@@ -27,6 +27,7 @@ dist-ssr
 CLAUDE.md
 .claude/
 docs/LEARNING.md
+docs/AUDIT.md
 
 # Playwright
 playwright-report/

@@ -42,7 +42,7 @@ function DesktopRow({ item }: { item: CartItem }) {
         <span className="min-w-0">
           <span className="block truncate font-bold">{item.name}</span>
           <span className="block text-sm text-copy">
-            Token {item.tokenId} · Edição {item.editionLabel}
+            ID do token: {item.tokenId} · Edição: {item.editionLabel}
           </span>
         </span>
       </Link>
