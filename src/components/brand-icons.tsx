@@ -17,3 +17,49 @@ export function FacebookIcon({ className }: { className?: string }) {
     </svg>
   )
 }
+
+type SocialIconProps = { className?: string }
+const social = { 'aria-hidden': true, viewBox: '0 0 24 24' } as const
+
+export function FacebookMark({ className }: SocialIconProps) {
+  return (
+    <svg {...social} className={className} fill="currentColor">
+      <path d="M13.4 22v-8.2h2.8l.4-3.2h-3.2V8.5c0-.9.3-1.5 1.6-1.5h1.7V4.1C16.4 4.1 15.4 4 14.3 4c-2.5 0-4.2 1.5-4.2 4.3v2.3H7.3v3.2h2.8V22h3.3z" />
+    </svg>
+  )
+}
+
+export function InstagramMark({ className }: SocialIconProps) {
+  return (
+    <svg {...social} className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.2" cy="6.8" r=".6" fill="currentColor" />
+    </svg>
+  )
+}
+
+export function XMark({ className }: SocialIconProps) {
+  return (
+    <svg {...social} className={className} fill="currentColor">
+      <path d="M18.2 3h3.1l-6.8 7.7L22.5 21h-6.3l-4.9-6.4L5.7 21H2.6l7.3-8.3L2.1 3h6.4l4.4 5.9L18.2 3zm-1.1 16.2h1.7L7.6 4.7H5.8l11.3 14.5z" />
+    </svg>
+  )
+}
+
+export function LinkedInMark({ className }: SocialIconProps) {
+  return (
+    <svg {...social} className={className} fill="currentColor">
+      <path d="M4 9h4v11H4zM6 3.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM10 9h3.8v1.6c.6-1 1.9-1.9 3.7-1.9 3.4 0 4.5 2.1 4.5 5.4V20h-4v-5.2c0-1.4-.3-2.5-1.8-2.5S14 13.400 14 15v5h-4z" />
+    </svg>
+  )
+}
+
+export function YouTubeMark({ className }: SocialIconProps) {
+  return (
+    <svg {...social} className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="2.5" y="5.5" width="19" height="13" rx="4" />
+      <path d="M10 9.2l5 2.8-5 2.8z" fill="currentColor" />
+    </svg>
+  )
+}

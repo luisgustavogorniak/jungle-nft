@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Bell, Mail, Phone, ShieldCheck, Users } from 'lucide-react'
+import { Bell, ShieldCheck, Users } from 'lucide-react'
 import { toast } from 'sonner'
+import { FacebookMark, InstagramMark, LinkedInMark, XMark, YouTubeMark } from '@/components/brand-icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Container } from './container'
@@ -16,11 +17,11 @@ const features = [
 ]
 
 const socials = [
-  { label: 'Facebook', abbr: 'FB', href: 'https://www.facebook.com' },
-  { label: 'Instagram', abbr: 'IG', href: 'https://www.instagram.com' },
-  { label: 'X', abbr: 'X', href: 'https://x.com' },
-  { label: 'LinkedIn', abbr: 'IN', href: 'https://www.linkedin.com' },
-  { label: 'YouTube', abbr: 'YT', href: 'https://www.youtube.com' },
+  { label: 'Facebook', icon: FacebookMark, href: 'https://www.facebook.com' },
+  { label: 'Instagram', icon: InstagramMark, href: 'https://www.instagram.com' },
+  { label: 'X', icon: XMark, href: 'https://x.com' },
+  { label: 'LinkedIn', icon: LinkedInMark, href: 'https://www.linkedin.com' },
+  { label: 'YouTube', icon: YouTubeMark, href: 'https://www.youtube.com' },
 ]
 
 const collections = [
@@ -72,10 +73,11 @@ function Newsletter() {
 export function SiteFooter() {
   return (
     <footer className="mt-24 hidden md:block">
-      <section className="bg-card py-8">
-        <Container className="grid grid-cols-[1fr_1fr_1fr_1.3fr] gap-8">
+      <Container>
+      <section className="bg-card p-8">
+        <div className="grid grid-cols-[1fr_1fr_1fr_1.3fr] gap-8">
           {features.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="grid content-start justify-items-start gap-3 border-r border-primary/40 pr-6">
+            <div key={title} className="grid content-start justify-items-start gap-3 border-r border-primary pr-6">
               <span className="flex size-[74px] items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <Icon className="size-8" aria-hidden="true" />
               </span>
@@ -84,24 +86,22 @@ export function SiteFooter() {
             </div>
           ))}
           <Newsletter />
-        </Container>
+        </div>
       </section>
 
-      <section className="bg-deep py-8">
-        <Container className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
-          <span className="text-sm font-bold tracking-[0.1em]">KURIO</span>
-          <p className="text-sm text-copy">Feito para colecionadores, criadores e cultura</p>
-          <a href="mailto:contato@email.com" className="flex items-center gap-2 text-sm hover:text-highlight">
-            <Mail className="size-4" aria-hidden="true" /> contato@email.com
-          </a>
-          <a href="tel:+551140028922" className="flex items-center gap-2 text-sm hover:text-highlight">
-            <Phone className="size-4" aria-hidden="true" /> +55 11 4002 8922
-          </a>
-        </Container>
+      <section className="grid min-h-[88px] grid-cols-4 items-center gap-8 bg-deep px-8 py-4">
+        <span className="text-sm font-bold tracking-[0.1em]">KURIO</span>
+        <p className="text-sm leading-[22px]">Feito para colecionadores, criadores e cultura</p>
+        <a href="mailto:contato@email.com" className="text-sm hover:text-highlight">
+          contato@email.com
+        </a>
+        <a href="tel:+551140028922" className="text-sm hover:text-highlight">
+          +55 11 4002 8922
+        </a>
       </section>
 
-      <section className="bg-card py-8">
-        <Container className="grid grid-cols-4 gap-8">
+      <section className="bg-card px-8 pt-8 pb-6">
+        <div className="grid grid-cols-4 gap-8">
           <nav aria-label="Meu perfil" className="grid content-start">
             <h2 className="mb-2 text-lg font-bold">Meu perfil</h2>
             <Link to="/profile" className={linkClass}>
@@ -137,28 +137,29 @@ export function SiteFooter() {
           <div className="grid content-start gap-3">
             <h2 className="text-lg font-bold">Redes sociais</h2>
             <ul className="flex gap-2">
-              {socials.map(({ label, abbr, href }) => (
+              {socials.map(({ label, icon: Icon, href }) => (
                 <li key={label}>
                   <a
                     href={href}
                     target="_blank"
                     rel="noreferrer"
                     aria-label={`${label} (abre em nova aba)`}
-                    className="flex size-[30px] items-center justify-center rounded-sm border border-primary text-[10px] font-bold text-highlight hover:bg-primary/10"
+                    className="flex size-[30px] items-center justify-center rounded-sm border border-primary text-highlight hover:bg-primary/10"
                   >
-                    {abbr}
+                    <Icon className="size-[18px]" />
                   </a>
                 </li>
               ))}
             </ul>
             <h3 className="text-sm font-bold">Carteiras compatíveis</h3>
-            <p className="w-fit rounded-sm border border-primary px-2 py-1 text-[9px] font-bold tracking-[0.1px] text-highlight">
+            <p className="rounded-sm border border-primary/40 bg-primary/10 px-2 py-1.5 text-center text-[9px] font-bold tracking-[0.1px] text-highlight">
               METAMASK • WALLETCONNECT • COINBASE
             </p>
           </div>
-        </Container>
-        <p className="mt-6 text-center text-sm leading-[30px]">© 2026 Kurio. Propriedade digital para todos.</p>
+        </div>
       </section>
+      </Container>
+      <p className="py-4 text-center text-sm leading-[30px]">© 2026 Kurio. Propriedade digital para todos.</p>
     </footer>
   )
 }
