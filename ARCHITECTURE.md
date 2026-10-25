@@ -358,6 +358,8 @@ CLS no desktop, medido com um probe de `layout-shift` antes e depois: início 0,
 | Perfil: sem texto de ajuda do avatar | "PNG, JPG ou WebP, até 5 MB." | O upload tem limites que o usuário precisa conhecer |
 | Perfil: campos de senha sem asterisco | Com asterisco | São obrigatórios para trocar a senha |
 | Carteiras: "Adicionar" ao lado de "Carteira principal" | Não feito | O formulário da principal fica sempre aberto; o link não teria ação |
+| Login e cadastro: campos só com placeholder | Rótulos visíveis sobre cada campo, além dos placeholders do frame | O placeholder some ao digitar e não substitui o rótulo (acessibilidade) |
+| Login: "Esqueceu a senha?", "Continuar com Google" e "Continuar com Facebook" | Presentes, com o aviso "não faz parte da demonstração" | Recuperação de senha e login social estão fora do escopo; não podem parecer funcionais |
 
 Os ajustes de acessibilidade em relação ao layout (foco visível em todo controle, avisos `aria-live`, "Pular para o conteúdo", rótulos e erros associados) estão na seção 12.
 

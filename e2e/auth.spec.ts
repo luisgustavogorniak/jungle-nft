@@ -30,6 +30,15 @@ test.describe('account and session', () => {
     await expect(page).toHaveURL(/\/login/)
   })
 
+  test('forgot password and social sign-in answer that they are outside the demo', async ({ page }) => {
+    await openFresh(page, '/login')
+    for (const name of ['Esqueceu a senha?', 'Continuar com Google', 'Continuar com Facebook']) {
+      await page.getByRole('button', { name }).click()
+      await expect(page.getByText('Esta página não faz parte da demonstração.')).toBeVisible()
+      await expect(page).toHaveURL(/\/login/)
+    }
+  })
+
   test('register handles conflicts returned by the API and then creates the account', async ({ page }) => {
     await openFresh(page, '/register')
 
@@ -37,14 +46,14 @@ test.describe('account and session', () => {
     await page.getByLabel('E-mail').fill(users.nova.email)
     await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('Secret#123')
     await page.getByLabel('Confirmar senha').fill('Secret#123')
-    await page.getByRole('button', { name: 'Criar conta' }).click()
+    await page.getByRole('button', { name: /^Criar (conta|perfil)$/ }).click()
 
     await expect(page.getByText('Este e-mail já está cadastrado')).toBeVisible()
     await expect(page.getByText('Este nome de usuário já está em uso')).toBeVisible()
 
     await page.getByLabel('Nome de usuário').fill('marina')
     await page.getByLabel('E-mail').fill('marina@kurio.test')
-    await page.getByRole('button', { name: 'Criar conta' }).click()
+    await page.getByRole('button', { name: /^Criar (conta|perfil)$/ }).click()
 
     await expectSignedIn(page, 'marina')
   })
@@ -53,7 +62,7 @@ test.describe('account and session', () => {
     await openFresh(page, '/register')
     await page.getByRole('textbox', { name: 'Senha', exact: true }).fill('Secret#123')
     await page.getByLabel('Confirmar senha').fill('Different#1')
-    await page.getByRole('button', { name: 'Criar conta' }).click()
+    await page.getByRole('button', { name: /^Criar (conta|perfil)$/ }).click()
     await expect(page.getByText('As senhas não coincidem')).toBeVisible()
   })
 

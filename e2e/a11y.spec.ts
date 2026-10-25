@@ -110,7 +110,7 @@ test.describe('keyboard, focus and forms', () => {
 
   test('form errors are tied to their fields: aria-invalid, aria-describedby and the first error gets the focus', async ({ page }) => {
     await openFresh(page, '/register')
-    await page.getByRole('button', { name: 'Criar conta' }).click()
+    await page.getByRole('button', { name: /^Criar (conta|perfil)$/ }).click()
 
     const fields = await page.getByRole('form', { name: 'Criar conta' }).locator('input').all()
     expect(fields.length).toBe(4)
@@ -126,7 +126,7 @@ test.describe('keyboard, focus and forms', () => {
 
     // Fixing a field clears its error.
     await fields[0].fill('novasato')
-    await page.getByRole('button', { name: 'Criar conta' }).click()
+    await page.getByRole('button', { name: /^Criar (conta|perfil)$/ }).click()
     await expect(fields[0]).not.toHaveAttribute('aria-invalid', 'true')
     await expect(fields[1]).toBeFocused()
   })

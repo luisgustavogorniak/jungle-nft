@@ -18,7 +18,9 @@ function LoginPage() {
 
   return (
     <main className="mx-auto grid max-w-sm gap-4 p-8">
+      <p className="text-center text-[32px] font-bold tracking-[0.1em] md:hidden">KURIO</p>
       <h1 className="text-xl font-bold">Entrar</h1>
+      <p className="hidden text-sm text-copy md:block">Entre para gerenciar sua carteira, coleção e perfil de criador.</p>
       {search.reason === 'expired' && (
         <p role="status" className="text-sm">
           Sua sessão expirou. Entre novamente para continuar de onde parou.

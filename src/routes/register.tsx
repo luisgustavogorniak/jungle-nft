@@ -18,7 +18,9 @@ function RegisterPage() {
 
   return (
     <main className="mx-auto grid max-w-sm gap-4 p-8">
+      <p className="text-center text-[32px] font-bold tracking-[0.1em] md:hidden">KURIO</p>
       <h1 className="text-xl font-bold">Criar perfil de colecionador</h1>
+      <p className="hidden text-sm text-copy md:block">Crie seu perfil de colecionador e conecte uma carteira quando quiser.</p>
       <RegisterForm onSuccess={() => router.history.push(safeRedirect(search.redirect))} />
       <p className="text-sm">
         Já tem uma conta?{' '}

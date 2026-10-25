@@ -1,9 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { OutOfScopeLink } from '@/components/layout/out-of-scope'
 import { TextField } from '@/components/text-field'
 import { Button } from '@/components/ui/button'
 import { applyServerErrors } from '@/lib/form-errors'
+import { useIsDesktop } from '@/lib/use-media-query'
 import { useLogin, useRegister } from './session'
 
 const loginFormSchema = z.object({
@@ -38,6 +40,20 @@ export function ServerError({ message }: { message?: string }) {
   )
 }
 
+/** "Ou continue com" + social buttons. Social sign-in is outside the challenge scope, so they answer honestly. */
+function SocialSignIn() {
+  const social = 'h-10 rounded-sm border border-input text-[13px] font-medium text-copy hover:text-foreground'
+  return (
+    <div className="grid gap-3">
+      <p className="flex items-center gap-3 text-sm text-copy before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
+        Ou continue com
+      </p>
+      <OutOfScopeLink className={social}>Continuar com Google</OutOfScopeLink>
+      <OutOfScopeLink className={social}>Continuar com Facebook</OutOfScopeLink>
+    </div>
+  )
+}
+
 export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const login = useLogin()
   const form = useForm<LoginFormValues>({ resolver: zodResolver(loginFormSchema) })
@@ -68,16 +84,19 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
         error={errors.password?.message}
         {...form.register('password')}
       />
+      <OutOfScopeLink className="justify-self-end text-sm text-highlight hover:underline">Esqueceu a senha?</OutOfScopeLink>
       <ServerError message={errors.root?.server?.message} />
       <Button type="submit" disabled={login.isPending}>
         {login.isPending ? 'Entrando…' : 'Entrar'}
       </Button>
+      <SocialSignIn />
     </form>
   )
 }
 
 export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   const register = useRegister()
+  const isDesktop = useIsDesktop()
   const form = useForm<RegisterFormValues>({ resolver: zodResolver(registerFormSchema) })
   const { errors } = form.formState
 
@@ -92,6 +111,7 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
       <TextField
         label="Nome de usuário"
         autoComplete="username"
+        placeholder="Nome de usuário"
         required
         error={errors.username?.message}
         {...form.register('username')}
@@ -100,7 +120,7 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         label="E-mail"
         type="email"
         autoComplete="email"
-        placeholder="contato@email.com"
+        placeholder="Digite seu e-mail"
         required
         error={errors.email?.message}
         {...form.register('email')}
@@ -109,6 +129,7 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         label="Senha"
         type="password"
         autoComplete="new-password"
+        placeholder="Senha"
         required
         error={errors.password?.message}
         {...form.register('password')}
@@ -117,14 +138,16 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         label="Confirmar senha"
         type="password"
         autoComplete="new-password"
+        placeholder="Confirmar senha"
         required
         error={errors.confirmPassword?.message}
         {...form.register('confirmPassword')}
       />
       <ServerError message={errors.root?.server?.message} />
       <Button type="submit" disabled={register.isPending}>
-        {register.isPending ? 'Criando conta…' : 'Criar conta'}
+        {register.isPending ? 'Criando conta…' : isDesktop ? 'Criar conta' : 'Criar perfil'}
       </Button>
+      <SocialSignIn />
     </form>
   )
 }
