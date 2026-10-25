@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react'
 import type { CartItem } from '@/api/contracts'
 import { MAX_QUANTITY, QuantityStepper } from '@/components/quantity-stepper'
 import { Button } from '@/components/ui/button'
+import { PendingOrderIssue } from '@/features/orders/pending-order-notice'
 import { formatEth, mulEth } from '@/lib/eth'
 import { useIsDesktop } from '@/lib/use-media-query'
 import { useRemoveCartItem, useUpdateCartItem } from './queries'
@@ -83,17 +84,23 @@ function MobileRow({ item }: { item: CartItem }) {
   )
 }
 
-/** One cart line. `issue` is the availability problem the quote reported for it. */
-export function CartRow({ item, issue }: { item: CartItem; issue?: string }) {
+/**
+ * One cart line. `issue` is the availability problem the quote reported for it;
+ * `pendingOrderId` is set when the user's own pending order holds those units.
+ */
+export function CartRow({ item, issue, pendingOrderId }: { item: CartItem; issue?: string; pendingOrderId?: string }) {
   const isDesktop = useIsDesktop()
   return (
     <li aria-label={`${item.name}, edição ${item.editionLabel}`} className="grid gap-2">
       {isDesktop ? <DesktopRow item={item} /> : <MobileRow item={item} />}
-      {issue && (
-        <p role="alert" className="text-sm text-destructive">
-          {issue}
-        </p>
-      )}
+      {issue &&
+        (pendingOrderId ? (
+          <PendingOrderIssue orderId={pendingOrderId} />
+        ) : (
+          <p role="alert" className="text-sm text-destructive">
+            {issue}
+          </p>
+        ))}
     </li>
   )
 }

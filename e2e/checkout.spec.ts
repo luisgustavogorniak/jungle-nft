@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import {
   checkoutAsNova,
   connectAndReview,
+  expectEventReceived,
   expectPrimaryWallet,
   leaveOrder,
   listOrders,
@@ -9,6 +10,8 @@ import {
   mockControls,
   openCart,
   setScenario,
+  settlePendingOrders,
+  updateNft,
   users,
 } from './support/mock'
 
@@ -74,25 +77,51 @@ test.describe('checkout', () => {
     await expect(page.getByRole('button', { name: 'Revisar pedido' })).toBeHidden()
   })
 
-  test('an order whose response timed out is recovered with the same idempotency key', async ({ page }) => {
+  test('an order whose response timed out is recovered with the same idempotency key, even after a reload', async ({ page }) => {
     test.slow() // the client gives up after its 10s timeout
     await checkoutAsNova(page, 'order-timeout')
     await connectAndReview(page)
     const keys = recordOrderKeys(page)
 
     await page.getByRole('button', { name: 'Confirmar compra' }).click()
-    await expect(page.getByRole('alert')).toContainText('O servidor demorou para responder', { timeout: 15_000 })
+    const attempt = page.getByRole('region', { name: 'Pedido em andamento' })
+    await expect(attempt).toBeVisible({ timeout: 15_000 })
     // The server did create the order; only its response was lost.
     const created = await listOrders(page)
     expect(created).toHaveLength(1)
 
-    await page.getByRole('button', { name: 'Tentar novamente' }).click()
-    await expect(page).toHaveURL(/\/orders\/order-/)
+    // The attempt survives a reload: the retry still sends the original request, so no 409.
+    await page.reload()
+    await expect(attempt).toBeVisible()
+    await attempt.getByRole('button', { name: 'Tentar novamente' }).click()
+    await expect(page).toHaveURL(`/orders/${created[0].id}`)
     // The retry reused the key of the first attempt and got the original order back, not a second one.
     expect(keys).toHaveLength(2)
     expect(keys[1]).toBe(keys[0])
     expect(await listOrders(page)).toEqual(created)
-    expect(page.url()).toContain(created[0].id)
+  })
+
+  test('a timed-out order confirmed before the retry opens confirmed, even with its quote expired', async ({ page }) => {
+    test.slow() // the client gives up after its 10s timeout
+    await checkoutAsNova(page, 'order-timeout')
+    await connectAndReview(page)
+
+    await page.getByRole('button', { name: 'Confirmar compra' }).click()
+    const attempt = page.getByRole('region', { name: 'Pedido em andamento' })
+    await expect(attempt).toBeVisible({ timeout: 15_000 })
+    const [created] = await listOrders(page)
+
+    // The confirmation arrives before the retry: the order leaves the cart, and the quote of
+    // the attempt expires. The panel stays, since it does not depend on the cart.
+    await settlePendingOrders(page)
+    await expectEventReceived(page, 'order.updated', created.id)
+    await mockControls(page, 'expireQuotes')
+    await expect(attempt).toBeVisible()
+
+    await attempt.getByRole('button', { name: 'Tentar novamente' }).click()
+    await expect(page).toHaveURL(`/orders/${created.id}`)
+    await expect(page.getByTestId('order-status')).toHaveText('Seus NFTs agora estão na sua carteira')
+    expect(await listOrders(page)).toHaveLength(1)
   })
 
   test('repeated clicks on confirm create a single order', async ({ page }) => {
@@ -126,6 +155,8 @@ test.describe('checkout', () => {
 
   test('a pending order is announced in the cart with a link to it', async ({ page }) => {
     await checkoutAsNova(page, 'slow-payment')
+    // The order reserves the last unit, so the cart line has no stock while it is pending.
+    await updateNft(page, 'emerald-ape-042', { editions: [{ id: '1-50', available: 1 }] })
     await connectAndReview(page)
     await page.getByRole('button', { name: 'Confirmar compra' }).click()
     await expect(page).toHaveURL(/\/orders\/order-/)
@@ -133,6 +164,11 @@ test.describe('checkout', () => {
 
     await leaveOrder(page)
     await openCart(page)
+    // The line says the user's own order holds it, not that it sold out.
+    const row = page.getByRole('listitem', { name: /Emerald Ape #042/ })
+    await expect(row.getByText('Pedido em andamento')).toBeVisible()
+    await expect(row).not.toContainText('esgotou')
+    await expect(row.getByRole('link', { name: 'Ver pedido' })).toHaveAttribute('href', new URL(orderUrl).pathname)
     const notice = page.getByRole('status').filter({ hasText: 'aguardando a confirmação da rede' })
     await expect(notice).toBeVisible()
     await notice.getByRole('link', { name: 'Ver pedido' }).click()

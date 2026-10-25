@@ -10,6 +10,7 @@ type MockControls = {
   replayLastEvent: () => void
   emitStaleNftUpdate: (nftId: string, price: string) => void
   settlePendingOrders: () => void
+  expireQuotes: () => void
   receivedEvents: () => ReceivedEvent[]
 }
 
@@ -30,7 +31,7 @@ export async function openFresh(page: Page, path: string, scenario = 'default') 
   await page.goto(`${url.pathname}${url.search}`)
 }
 
-export async function mockControls(page: Page, action: 'reset' | 'expireSessions') {
+export async function mockControls(page: Page, action: 'reset' | 'expireSessions' | 'expireQuotes') {
   await page.evaluate(
     (name) => (window as unknown as { __kurioMock: MockControls }).__kurioMock[name](),
     action,

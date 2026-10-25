@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
-import { useMutation, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
@@ -20,7 +20,14 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { OrderSummary } from '@/features/cart/order-summary'
 import { cartKeys } from '@/features/cart/queries'
-import { attemptKey, orderKeys, useCreateOrder } from '@/features/orders/queries'
+import { PendingOrderIssue } from '@/features/orders/pending-order-notice'
+import {
+  orderKeys,
+  pendingOrdersQueryOptions,
+  startAttempt,
+  useCreateOrder,
+  usePendingOrderFor,
+} from '@/features/orders/queries'
 import { compareEth, formatEth } from '@/lib/eth'
 import { errorMessage } from '@/lib/form-errors'
 import { useIsDesktop } from '@/lib/use-media-query'
@@ -43,13 +50,15 @@ const checkoutSchema = z.object({
 })
 type CheckoutValues = z.infer<typeof checkoutSchema>
 
-/** Same lines, prices and totals. Every quote request gets a new id, so ids are not compared. */
+/**
+ * Same lines, prices and totals. Every quote request gets a new id, so ids are not compared.
+ * Availability issues are not values: they block the purchase on their own, with their own message.
+ */
 function sameQuote(a: Quote, b: Quote): boolean {
   return (
     compareEth(a.total, b.total) === 0 &&
     compareEth(a.discount, b.discount) === 0 &&
     compareEth(a.networkFee, b.networkFee) === 0 &&
-    a.issues.length === b.issues.length &&
     a.lines.length === b.lines.length &&
     a.lines.every((line, index) => {
       const other = b.lines[index]
@@ -123,14 +132,19 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
   // re-requested or with availability issues blocks it too.
   const [reviewedQuote, setReviewedQuote] = useState<Quote>(quote.data)
   const quoteChanged = !sameQuote(quote.data, reviewedQuote)
+  const totalChanged = compareEth(quote.data.total, reviewedQuote.total) !== 0
   const blocked = quoteChanged || quote.isFetching || quote.data.issues.length > 0
+  const pendingOrderFor = usePendingOrderFor()
 
   const createOrder = useCreateOrder()
   const [confirming, setConfirming] = useState(false)
   const submitting = useRef(false)
   const [error, setError] = useState<string | null>(null)
-  const canRetry = createOrder.isError && isApiError(createOrder.error) && createOrder.error.isTransient
+  const conflict = isApiError(createOrder.error) && createOrder.error.code === 'IDEMPOTENCY_CONFLICT'
+  const pendingOrder = useQuery({ ...pendingOrdersQueryOptions, enabled: conflict }).data?.[0]
 
+  // A transient failure needs no handling here: the attempt becomes unresolved
+  // and the checkout page swaps this form for the retry panel.
   const orderCallbacks = {
     onSuccess: (order: { id: string }) => void navigate({ to: '/orders/$orderId', params: { orderId: order.id } }),
     onError: (mutationError: Error) => {
@@ -165,37 +179,23 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
       return
     }
     const values = form.getValues()
-    createOrder.mutate(
-      {
-        body: {
-          quoteId: fresh.data.id,
-          walletId: values.walletId,
-          network: values.network,
-          provider: values.provider,
-          collector: {
-            displayName: values.displayName,
-            username: values.username,
-            email: values.email,
-            note: values.note.trim() || null,
-          },
-        },
-        idempotencyKey: attemptKey(),
+    const attempt = startAttempt(user.id, {
+      quoteId: fresh.data.id,
+      walletId: values.walletId,
+      network: values.network,
+      provider: values.provider,
+      collector: {
+        displayName: values.displayName,
+        username: values.username,
+        email: values.email,
+        note: values.note.trim() || null,
       },
-      orderCallbacks,
-    )
-  }
-
-  // After a timeout the order may exist: the same request goes again, with the same key.
-  const retry = () => {
-    if (submitting.current || !createOrder.variables) return
-    submitting.current = true
-    setError(null)
-    createOrder.mutate(createOrder.variables, orderCallbacks)
+    })
+    createOrder.mutate(attempt, orderCallbacks)
   }
 
   const onPrimary = () => {
     if (!connected) return connect.mutate()
-    if (canRetry) return retry()
     if (reviewing) return void confirm()
     void form.handleSubmit(() => setStep('review'))()
   }
@@ -214,13 +214,11 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
         ? 'Verificando valores…'
         : createOrder.isPending
           ? 'Enviando pedido…'
-          : canRetry
-            ? 'Tentar novamente'
-            : reviewing
-              ? 'Confirmar compra'
-              : quote.isFetching
-                ? 'Atualizando valores…'
-                : 'Revisar pedido'
+          : reviewing
+            ? 'Confirmar compra'
+            : quote.isFetching
+              ? 'Atualizando valores…'
+              : 'Revisar pedido'
 
   const collectorFields = (
     <>
@@ -331,31 +329,42 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
 
   const alerts = (
     <>
-      {quote.data.issues.map((issue) => (
-        <p key={`${issue.nftId}-${issue.editionId}`} role="alert" className="text-sm text-destructive">
-          {issue.message}
-        </p>
-      ))}
+      {quote.data.issues.map((issue) => {
+        const orderId = pendingOrderFor(issue.nftId, issue.editionId)
+        return orderId ? (
+          <PendingOrderIssue key={`${issue.nftId}-${issue.editionId}`} orderId={orderId} />
+        ) : (
+          <p key={`${issue.nftId}-${issue.editionId}`} role="alert" className="text-sm text-destructive">
+            {issue.message}
+          </p>
+        )
+      })}
       {quoteChanged && (
         <div role="alert" className="grid gap-3 rounded-md border border-highlight p-4 text-sm">
           <p>
-            Os valores mudaram desde a sua revisão. Total anterior: {formatEth(reviewedQuote.total)}. Novo total:{' '}
-            {formatEth(quote.data.total)}.
+            {totalChanged
+              ? `Os valores mudaram desde a sua revisão. Total anterior: ${formatEth(reviewedQuote.total)}. Novo total: ${formatEth(quote.data.total)}.`
+              : 'Os itens do pedido mudaram desde a sua revisão. O total continua o mesmo.'}
           </p>
           <Button type="button" variant="outline" disabled={quote.isFetching} onClick={() => setReviewedQuote(quote.data)}>
-            Aceitar novo valor
+            {totalChanged ? 'Aceitar novo valor' : 'Aceitar alterações'}
           </Button>
         </div>
       )}
       {error && (
         <p role="alert" className="text-sm text-destructive">
-          {error}
+          {error}{' '}
+          {conflict && pendingOrder && (
+            <Link to="/orders/$orderId" params={{ orderId: pendingOrder.id }} className="font-bold text-highlight underline">
+              Ver pedido pendente
+            </Link>
+          )}
         </p>
       )}
     </>
   )
 
-  const primaryDisabled = busy || (connected && !canRetry && blocked)
+  const primaryDisabled = busy || (connected && blocked)
 
   if (!isDesktop) {
     return (

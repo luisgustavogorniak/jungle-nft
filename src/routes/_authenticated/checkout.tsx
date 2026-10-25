@@ -8,6 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cartQueryOptions, useCartQuote } from '@/features/cart/queries'
 import { CheckoutForm } from '@/features/checkout/checkout-form'
 import { PendingOrderNotice } from '@/features/orders/pending-order-notice'
+import { useUnresolvedAttempt } from '@/features/orders/queries'
+import { UnresolvedOrder } from '@/features/orders/unresolved-order'
 import { errorMessage } from '@/lib/form-errors'
 
 export const Route = createFileRoute('/_authenticated/checkout')({
@@ -22,6 +24,7 @@ function CheckoutPage() {
   const quote = useCartQuote()
   const cart = useQuery(cartQueryOptions)
   const wallets = useQuery({ queryKey: ['wallets', session.user.id], queryFn: ({ signal }) => walletsApi.list(signal) })
+  const attempt = useUnresolvedAttempt(session.user.id)
 
   const failed = quote.isError && !quote.data ? quote : wallets.isError ? wallets : null
 
@@ -53,9 +56,14 @@ function CheckoutPage() {
           <span aria-current="page">Pagamento</span>
         </nav>
 
-        <PendingOrderNotice />
+        {/* An unresolved attempt replaces the form, whatever the cart says: its order may exist. */}
+        {attempt ? (
+          <UnresolvedOrder attempt={attempt} />
+        ) : (
+          <PendingOrderNotice />
+        )}
 
-        {failed ? (
+        {attempt ? null : failed ? (
           <div role="alert" className="grid justify-items-start gap-3 bg-card p-6">
             <p className="font-bold">Não foi possível carregar o pagamento.</p>
             <p className="text-copy">{errorMessage(failed.error)}</p>

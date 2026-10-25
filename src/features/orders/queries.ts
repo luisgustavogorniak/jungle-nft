@@ -1,7 +1,9 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSyncExternalStore } from 'react'
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ordersApi } from '@/api/commerce'
 import type { CreateOrderRequest } from '@/api/contracts'
 import { isApiError } from '@/api/http'
+import { useSession } from '@/features/auth/session'
 
 export const orderKeys = {
   all: ['orders'] as const,
@@ -22,54 +24,87 @@ export const orderQueryOptions = (orderId: string) =>
     staleTime: 0,
   })
 
-const ATTEMPT_KEY = 'kurio.checkout.attempt'
-let memoryKey: string | null = null
-
 /**
- * The idempotency key of the current purchase attempt. It is kept (in
- * sessionStorage, so it survives a reload) until the attempt gets a definitive
- * answer: after a timeout or a dropped connection the order may exist, and any
- * new submission must reuse the key to recover it instead of buying twice.
+ * The pending order that holds this cart line, if any. Its units are reserved, so the
+ * quote reports the line as unavailable: the UI says "order in progress" instead.
  */
-export function attemptKey(): string {
-  try {
-    memoryKey = sessionStorage.getItem(ATTEMPT_KEY) ?? memoryKey
-  } catch {
-    // Storage unavailable: the in-memory key still protects retries in this tab.
-  }
-  memoryKey ??= crypto.randomUUID()
-  try {
-    sessionStorage.setItem(ATTEMPT_KEY, memoryKey)
-  } catch {
-    // Same as above.
-  }
-  return memoryKey
+export function usePendingOrderFor() {
+  const { isAuthenticated } = useSession()
+  const pending = useQuery({ ...pendingOrdersQueryOptions, enabled: isAuthenticated })
+  return (nftId: string, editionId: string) =>
+    pending.data?.find((order) => order.lines.some((line) => line.nftId === nftId && line.editionId === editionId))?.id
 }
 
-function finishAttempt() {
-  memoryKey = null
+/** One purchase attempt: the exact request and its idempotency key, for a retry that changes nothing. */
+export type Attempt = { key: string; userId: string; body: CreateOrderRequest }
+
+const ATTEMPT_KEY = 'kurio.checkout.attempt'
+const listeners = new Set<() => void>()
+
+/**
+ * The attempt is written to sessionStorage before the request goes out and
+ * removed only on a definitive answer, so a reload in the middle cannot lose it.
+ * `unresolved` is what the UI sees: the attempt whose answer never arrived
+ * (timeout, dropped connection, 5xx, or a reload while it was in flight).
+ */
+let unresolved: Attempt | null = load()
+
+function load(): Attempt | null {
   try {
-    sessionStorage.removeItem(ATTEMPT_KEY)
+    const value = sessionStorage.getItem(ATTEMPT_KEY)
+    return value ? (JSON.parse(value) as Attempt) : null
   } catch {
-    // Nothing stored.
+    // Storage unavailable or an old format: no attempt to recover.
+    return null
   }
+}
+
+function save(attempt: Attempt | null, visible: Attempt | null) {
+  unresolved = visible
+  try {
+    if (attempt) sessionStorage.setItem(ATTEMPT_KEY, JSON.stringify(attempt))
+    else sessionStorage.removeItem(ATTEMPT_KEY)
+  } catch {
+    // Storage blocked: the in-memory attempt still protects retries in this tab.
+  }
+  listeners.forEach((listener) => listener())
+}
+
+/** Starts a new attempt for this request. It stays hidden while the first request is in flight. */
+export function startAttempt(userId: string, body: CreateOrderRequest): Attempt {
+  const attempt = { key: crypto.randomUUID(), userId, body }
+  save(attempt, null)
+  return attempt
+}
+
+/** The attempt of this user still waiting for a definitive answer, or null. */
+export function useUnresolvedAttempt(userId: string): Attempt | null {
+  const attempt = useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+    () => unresolved,
+    () => null,
+  )
+  return attempt?.userId === userId ? attempt : null
 }
 
 export function useCreateOrder() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ body, idempotencyKey }: { body: CreateOrderRequest; idempotencyKey: string }) =>
-      ordersApi.create(body, idempotencyKey),
+    mutationFn: (attempt: Attempt) => ordersApi.create(attempt.body, attempt.key),
     onSuccess: (order) => {
-      finishAttempt()
+      save(null, null)
       queryClient.setQueryData(orderKeys.detail(order.id), order)
       void queryClient.invalidateQueries({ queryKey: orderKeys.pending, exact: true })
     },
     // A transient failure (timeout, connection, 5xx) says nothing about the
-    // order: the key stays. Any other answer means no order was created with
-    // this request, so the next submission starts a new attempt.
-    onError: (error) => {
-      if (!isApiError(error) || !error.isTransient) finishAttempt()
+    // order: the attempt stays and becomes unresolved. Any other answer means no
+    // order was created with this request, so the next submission starts anew.
+    onError: (error, attempt) => {
+      if (isApiError(error) && error.isTransient) save(attempt, attempt)
+      else save(null, null)
     },
   })
 }

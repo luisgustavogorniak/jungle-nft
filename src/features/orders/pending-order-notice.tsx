@@ -22,3 +22,15 @@ export function PendingOrderNotice() {
     </p>
   )
 }
+
+/** Replaces "sold out" on a line whose units are reserved by the user's own pending order. */
+export function PendingOrderIssue({ orderId }: { orderId: string }) {
+  return (
+    <p className="text-sm">
+      Pedido em andamento: este item está reservado para ele.{' '}
+      <Link to="/orders/$orderId" params={{ orderId }} className="font-bold text-highlight underline">
+        Ver pedido
+      </Link>
+    </p>
+  )
+}

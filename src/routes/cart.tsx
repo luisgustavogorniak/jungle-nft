@@ -10,6 +10,7 @@ import { OrderSummary, OrderSummarySkeleton } from '@/features/cart/order-summar
 import { cartQueryOptions, useCartQuote } from '@/features/cart/queries'
 import { NftShelf } from '@/features/catalog/nft-shelf'
 import { PendingOrderNotice } from '@/features/orders/pending-order-notice'
+import { usePendingOrderFor } from '@/features/orders/queries'
 import { errorMessage } from '@/lib/form-errors'
 
 export const Route = createFileRoute('/cart')({
@@ -28,6 +29,8 @@ function CartPage() {
   const issues = quote.data?.issues ?? []
   const issueFor = (nftId: string, editionId: string) =>
     issues.find((issue) => issue.nftId === nftId && issue.editionId === editionId)?.message
+  const pendingOrderFor = usePendingOrderFor()
+  const onlyReserved = issues.every((issue) => pendingOrderFor(issue.nftId, issue.editionId))
   // Totals of a stale quote (or one with problems) must not lead to checkout.
   const blocked = quote.isPlaceholderData || issues.length > 0
 
@@ -95,7 +98,12 @@ function CartPage() {
               </div>
               <ul aria-label="Itens do carrinho" className="grid gap-3 md:gap-3">
                 {items.map((item) => (
-                  <CartRow key={`${item.nftId}-${item.editionId}`} item={item} issue={issueFor(item.nftId, item.editionId)} />
+                  <CartRow
+                    key={`${item.nftId}-${item.editionId}`}
+                    item={item}
+                    issue={issueFor(item.nftId, item.editionId)}
+                    pendingOrderId={pendingOrderFor(item.nftId, item.editionId)}
+                  />
                 ))}
               </ul>
             </section>
@@ -113,7 +121,9 @@ function CartPage() {
               {quote.data && <OrderSummary quote={quote.data} busy={quote.isPlaceholderData} />}
               {blocked && issues.length > 0 && (
                 <p id="checkout-help" role="status" className="text-sm text-destructive">
-                  Ajuste ou remova os itens indisponíveis para continuar.
+                  {onlyReserved
+                    ? 'Aguarde a confirmação do pedido em andamento para continuar.'
+                    : 'Ajuste ou remova os itens indisponíveis para continuar.'}
                 </p>
               )}
               {blocked ? (

@@ -76,7 +76,7 @@ Exemplo: `http://localhost:5173/?scenario=slow&mock-reset`.
 | `default` | Tudo funciona, latência de 150 a 450 ms. Pagamentos confirmam em 2 s |
 | `slow-payment` | Pagamentos ficam pendentes por 8 s antes de confirmar: dá tempo de ver o estado pendente e recarregar a página do pedido |
 | `wallet-rejected` | A carteira recusa toda tentativa de conexão no checkout |
-| `order-timeout` | O pedido é criado, mas a resposta nunca chega; o cliente desiste após 10 s e "Tentar novamente" recupera o mesmo pedido |
+| `order-timeout` | O pedido é criado, mas a resposta nunca chega; o cliente desiste após 10 s e o painel "Pedido em andamento" recupera o mesmo pedido com "Tentar novamente". O pagamento confirma em 15 s |
 | `payment-declined` | Pagamentos são recusados após 2 s |
 | `price-change` | 4 s depois da primeira cotação da página, o primeiro item do carrinho fica 10% mais caro (`nft.updated`) |
 | `slow` | Latência de 2,5 a 3,5 s em toda requisição (skeletons e estados de carregamento) |
@@ -103,6 +103,7 @@ A latência vem de um PRNG com semente, então a mesma sequência de requisiçõ
 | `replayLastEvent()` | Entrega o último evento de novo, com o mesmo `eventId` (duplicado) |
 | `emitStaleNftUpdate(nftId, preço)` | Entrega um estado antigo tarde (versão menor, `eventId` novo); o registro não muda |
 | `settlePendingOrders()` | Liquida agora todos os pedidos pendentes e emite `order.updated` ao dono |
+| `expireQuotes()` | Expira agora todas as cotações emitidas |
 | `receivedEvents()` | Todo evento que o `socket.io-client` do app recebeu desde o carregamento (probe só do mock, usado pelos testes) |
 
 ### Reproduzindo os fluxos de falha
@@ -116,7 +117,7 @@ A latência vem de um PRNG com semente, então a mesma sequência de requisiçõ
 | Rota privada como visitante | Abra `/profile` sem entrar: você vai ao login e volta depois de autenticar |
 | Pedido pendente recuperado após reload | Abra `/?scenario=slow-payment`, compre algo e recarregue a página do pedido enquanto ele está pendente: o estado volta da API e a confirmação chega pelo Socket.IO |
 | Conexão de carteira recusada | Abra `/checkout?scenario=wallet-rejected` logado, com itens no carrinho, e clique em "Conectar carteira". Volte com `__kurioMock.setScenario('default')` para conectar |
-| Timeout depois de criar o pedido | Abra `/checkout?scenario=order-timeout`, conecte, revise e confirme. Após 10 s o erro oferece "Tentar novamente", que reusa a chave de idempotência e abre o mesmo pedido (sem duplicar) |
+| Timeout depois de criar o pedido | Abra `/checkout?scenario=order-timeout`, conecte, revise e confirme. Após 10 s o checkout troca o formulário pelo painel "Pedido em andamento". "Tentar novamente" reenvia a mesma requisição com a mesma chave e abre o mesmo pedido (sem duplicar): pendente antes de 15 s, confirmado depois. Funciona também depois de recarregar a página ou de o carrinho esvaziar com a confirmação |
 | Aviso de pedido pendente | Com `slow-payment`, compre algo e abra o carrinho em até 8 s: um aviso leva ao pedido pendente |
 | Pagamento recusado | Abra `/?scenario=payment-declined` e compre algo: o pedido é recusado e os itens ficam no carrinho |
 | Preço muda com o item no carrinho | Adicione um NFT ao carrinho e abra `/cart?scenario=price-change` (ou `/checkout?scenario=price-change` logado). Cerca de 4 s depois o primeiro item fica 10% mais caro via `nft.updated`: um aviso é anunciado (`aria-live`), o resumo é recalculado e, no checkout, "Confirmar compra" fica desabilitado até "Aceitar novo valor". Dispara uma vez por carregamento; recarregue para repetir. Para um valor exato: `__kurioMock.updateNft('emerald-ape-042', { price: '1.50' })` |

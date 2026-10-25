@@ -1,7 +1,7 @@
 // Cart and quote rules of the simulated backend, shared by handlers.
 import type { Cart, CartItemInput, Edition, EditionId, Quote, QuoteIssue, QuoteLine } from '@/api/contracts'
 import { addEth, compareEth, mulEth, percentOfEth, subEth } from '@/lib/eth'
-import { db, type CartRecord, type QuoteRecord } from './db'
+import { db, saveDb, type CartRecord, type QuoteRecord } from './db'
 import { coupons, NETWORK_FEE } from './fixtures/commerce'
 import type { NftRecord } from './fixtures/nfts'
 import { resolveNftImage } from './images'
@@ -145,6 +145,13 @@ export function createQuote(ownerKey: string, couponCode: string | null): Quote 
   db().quotes[quote.id] = quote
   const { ownerKey: _owner, ...publicQuote } = quote
   return publicQuote
+}
+
+/** Mock control: every issued quote reaches its expiration now. */
+export function expireQuotes() {
+  const now = new Date().toISOString()
+  for (const quote of Object.values(db().quotes)) quote.expiresAt = now
+  saveDb()
 }
 
 /** True when the stored quote still matches the current cart pricing. */

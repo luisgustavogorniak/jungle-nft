@@ -32,6 +32,9 @@ export const orderHandlers = [
       const body = await parseBody(request, createOrderRequestSchema)
       const requestHash = stableStringify(body)
 
+      // The key is checked before the quote on purpose: a retry of an order that
+      // already exists must get it back even if its quote expired or the cart
+      // changed (a confirmed order empties the cart) since the first request.
       const previous = Object.values(db().orders).find(
         (order) => order.userId === user.id && order.idempotencyKey === key,
       )

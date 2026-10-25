@@ -142,13 +142,14 @@ O carrinho vive no servidor (mock), por dono: `user:<id>` quando autenticado, `g
 
 - **Carteira simulada:** `POST /api/wallets/:id/connect` com provedor e rede. O cenário `wallet-rejected` recusa (`409 WALLET_REJECTED`). Trocar carteira, provedor ou rede invalida a conexão (comparação derivada, sem efeito); "Desconectar" volta ao início. A carteira principal vem pré-selecionada, com a rede e o provedor dela.
 - **Revalidação antes de confirmar:** "Confirmar compra" relê a cotação. Se o conteúdo mudou desde a revisão, o pedido não é enviado e aparece o aviso com "Aceitar novo valor". O servidor mantém `409 QUOTE_CHANGED` como última barreira.
-- **Cotação desatualizada:** o checkout guarda a cotação que o usuário revisou. Uma nova cotação com conteúdo diferente (linhas, preços unitários, quantidades, totais) mostra o total anterior e o novo num alerta e desabilita "Confirmar compra" até "Aceitar novo valor". As cotações são comparadas por conteúdo, não por id, porque cada requisição gera um id novo. A compra também fica bloqueada enquanto a cotação é refeita e enquanto há problema de disponibilidade.
+- **Cotação desatualizada:** o checkout guarda a cotação que o usuário revisou. Uma nova cotação com conteúdo diferente (linhas, preços unitários, quantidades, totais) desabilita "Confirmar compra" até o usuário aceitar. O alerta mostra o total anterior e o novo só quando o total mudou; se só os itens mudaram, diz isso. As cotações são comparadas por conteúdo, não por id, porque cada requisição gera um id novo. Problemas de disponibilidade não contam como mudança de valor: eles bloqueiam a compra por conta própria, com mensagem própria. A compra também fica bloqueada enquanto a cotação é refeita.
+- **Reserva do próprio pedido:** um pedido pendente reserva as unidades, então a cotação do carrinho pode marcar a linha como esgotada. Quando a linha está num pedido pendente do usuário (`usePendingOrderFor`), carrinho e checkout mostram "Pedido em andamento" com link para ele, em vez de "esgotou".
 
 ### Pedidos (servidor simulado)
 
 | Regra | Onde |
 | --- | --- |
-| A criação exige `Idempotency-Key`. A mesma chave com o mesmo corpo devolve o pedido original; com corpo diferente, `409 IDEMPOTENCY_CONFLICT` | `src/mocks/handlers/orders.ts` |
+| A criação exige `Idempotency-Key`. A mesma chave com o mesmo corpo devolve o pedido original; com corpo diferente, `409 IDEMPOTENCY_CONFLICT`. A chave é checada **antes** da cotação: o retry de um pedido que já existe o recebe de volta mesmo com a cotação expirada ou o carrinho já esvaziado pela confirmação | `src/mocks/handlers/orders.ts` |
 | A cotação precisa pertencer ao usuário e ainda bater com o preço atual do carrinho, senão `409 QUOTE_CHANGED` | `quoteStillValid` em `src/mocks/commerce.ts` |
 | As unidades são reservadas na criação e liberadas se o pagamento for recusado | `src/mocks/orders.ts` |
 | A liquidação acontece em `settleAt`, persistido. No boot o mock reagenda os pendentes, e `GET /api/orders/:id` liquida um pedido cujo prazo já passou | `resumePendingOrders`, `settleIfDue` |
@@ -158,7 +159,11 @@ O carrinho vive no servidor (mock), por dono: `user:<id>` quando autenticado, `g
 
 ### Idempotência no cliente
 
-O cliente guarda uma chave de idempotência por tentativa de compra em `sessionStorage` (`attemptKey` em `src/features/orders/queries.ts`). A chave só é descartada quando a tentativa recebe uma resposta definitiva: sucesso, ou um erro que prova que nenhum pedido foi criado (4xx). Depois de uma falha transitória (timeout, conexão, 5xx) o pedido pode existir; então a chave permanece, sobrevive a um reload, e qualquer novo envio a reutiliza. "Tentar novamente" reenvia a mesma requisição e recupera o pedido; um envio com dados diferentes recebe `IDEMPOTENCY_CONFLICT` em vez de uma segunda compra.
+Cada tentativa de compra é guardada em `sessionStorage` **antes** do envio: a chave de idempotência, o corpo exato da requisição e o id do usuário (`startAttempt` em `src/features/orders/queries.ts`). Ela só é descartada quando chega uma resposta definitiva: sucesso, ou um erro que prova que nenhum pedido foi criado (4xx). Depois de uma falha transitória (timeout, conexão, 5xx), ou de um reload com a requisição em voo, o pedido pode existir e a tentativa fica **não resolvida**.
+
+Uma tentativa não resolvida substitui o formulário do checkout pelo painel "Pedido em andamento" (`UnresolvedOrder`). O "Tentar novamente" do painel reenvia o mesmo corpo com a mesma chave, recebe o pedido já criado (pendente ou confirmado) e navega até ele. O painel não depende do carrinho. Antes, o retry vivia no estado da mutation dentro do formulário: quando a confirmação chegava, o carrinho esvaziava, a página trocava o formulário por "carrinho vazio" e o retry sumia. Depois de um reload, só a chave sobrevivia, e um novo envio com outra cotação recebia 409. Guardar o corpo elimina esse 409. Se ele acontecer mesmo assim, a mensagem traz um link para o pedido pendente.
+
+O painel usa `mutateAsync` e não `mutate` com callbacks: o sucesso encerra a tentativa e desmonta o painel no mesmo instante, e o TanStack Query descarta os callbacks de `mutate` de um componente desmontado. A promise resolve mesmo assim. A tentativa guarda o id do usuário, então outra conta no mesmo navegador não vê o painel.
 
 **Clique repetido:** o botão fica desabilitado e um `ref` bloqueia a reentrada antes do re-render. Mesmo que duas requisições saíssem, a mesma chave devolveria o mesmo pedido. O teste E2E conta os `POST /api/orders` e exige um só.
 
