@@ -177,14 +177,14 @@ O Playwright faz o build do app e o serve com `vite preview` na porta 4173, o me
 
 | Página | Perfil | Perf. | A11y | BP | SEO | LCP | CLS | TBT |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Início | mobile | 98 | 100 | 100 | 100 | 1948 ms | 0,002 | 6 ms |
-| Início | desktop | 100 | 100 | 100 | 100 | 716 ms | 0,002 | 13 ms |
-| Detalhe | mobile | 99 | 100 | 100 | 100 | 1983 ms | 0 | 66 ms |
-| Detalhe | desktop | 100 | 100 | 100 | 100 | 608 ms | 0 | 0 ms |
-| Carrinho | mobile | 99 | 100 | 100 | 100 | 2018 ms | 0,003 | 80 ms |
-| Carrinho | desktop | 100 | 100 | 100 | 100 | 762 ms | 0,001 | 0 ms |
-| Pagamento | mobile | 98 | 100 | 100 | 100 | 2100 ms | 0 | 93 ms |
-| Pagamento | desktop | 100 | 100 | 100 | 100 | 810 ms | 0 | 0 ms |
+| Início | mobile | 98 | 100 | 100 | 100 | 1968 ms | 0,001 | 6 ms |
+| Início | desktop | 100 | 100 | 100 | 100 | 692 ms | 0,002 | 12 ms |
+| Detalhe | mobile | 99 | 100 | 100 | 100 | 1838 ms | 0 | 65 ms |
+| Detalhe | desktop | 100 | 100 | 100 | 100 | 588 ms | 0 | 0 ms |
+| Carrinho | mobile | 100 | 100 | 100 | 100 | 1697 ms | 0,003 | 41 ms |
+| Carrinho | desktop | 100 | 100 | 100 | 100 | 595 ms | 0,001 | 0 ms |
+| Pagamento | mobile | 99 | 100 | 100 | 100 | 1934 ms | 0 | 71 ms |
+| Pagamento | desktop | 100 | 100 | 100 | 100 | 740 ms | 0 | 0 ms |
 
 ## Deploy
 
