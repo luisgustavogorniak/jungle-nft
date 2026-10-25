@@ -133,7 +133,7 @@ O carrinho vive no servidor (mock), por dono: `user:<id>` quando autenticado, `g
 
 - **Totais** vêm sempre de `POST /api/quote`, nunca de conta no cliente. Enquanto uma nova cotação carrega, os valores anteriores ficam esmaecidos (`aria-busy`) e "Conectar e finalizar" fica desabilitado. Itens com problema de estoque aparecem na linha e bloqueiam a finalização.
 - **Edição otimista** (`useCartEdit`): a linha muda na hora; em erro, volta o snapshot e um toast explica; só a última edição em voo recarrega carrinho e cotação. `PATCH` define a quantidade absoluta (409 se acima do estoque); `DELETE` é idempotente.
-- **Cupom:** só é guardado depois que a API o aceita (`sessionStorage`, compartilhado entre carrinho e checkout). Inválido ou expirado mostra o motivo no campo; um cupom que expire depois é removido com aviso (`useCartQuote`). O logout o limpa.
+- **Cupom:** só é guardado depois que a API o aceita (`sessionStorage`, compartilhado entre carrinho e checkout). Inválido ou expirado mostra o motivo no campo; um cupom que expire depois é removido com aviso (`useCartQuote`). O logout o limpa, e a confirmação de um pedido também (`order.updated` com `confirmed`, em `applyOrderUpdated`): o carrinho seguinte começa sem cupom. Um pagamento recusado mantém o cupom, porque os itens voltam ao carrinho para uma nova tentativa.
 - **Visitante:** o `guestId` identifica o carrinho; o merge no login e a persistência após refresh têm teste E2E.
 
 ## 8. Checkout, pedidos e idempotência

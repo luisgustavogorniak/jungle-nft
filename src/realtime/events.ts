@@ -11,6 +11,7 @@ import {
   type NftUpdatedEvent,
   type Order,
 } from '@/api/contracts'
+import { setCoupon } from '@/features/cart/coupon'
 import { cartKeys } from '@/features/cart/queries'
 import { catalogKeys } from '@/features/catalog/queries'
 import { orderKeys } from '@/features/orders/queries'
@@ -48,8 +49,10 @@ export function applyOrderUpdated(queryClient: QueryClient, payload: unknown) {
   }
 
   void queryClient.invalidateQueries({ queryKey: orderKeys.pending, exact: true })
-  // A confirmed order removed the purchased items from the server cart.
+  // A confirmed order removed the purchased items from the server cart and used
+  // the coupon: the next cart starts without it. A declined one keeps both.
   if (event.data.status === 'confirmed') {
+    setCoupon(null)
     void queryClient.invalidateQueries({ queryKey: cartKeys.cart })
     void queryClient.invalidateQueries({ queryKey: cartKeys.quotes })
   }

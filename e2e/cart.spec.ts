@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { login, openFresh, selectEdition, setScenario, users } from './support/mock'
+import { connectAndReview, login, openFresh, selectEdition, setScenario, users } from './support/mock'
 
 /** Detail → 1/50 edition, two units → cart. The toast action is the way to the cart on mobile. */
 async function addEmeraldApe(page: Page, scenario = 'default') {
@@ -78,6 +78,27 @@ test.describe('cart', () => {
     await page.getByRole('button', { name: 'Remover cupom KURIO10' }).click()
     await expect(page.getByTestId('summary-discount')).toHaveText('(-) 0.00')
     await expect(total(page)).toHaveText('2.396 ETH')
+  })
+
+  test('drops the coupon once the order with it is confirmed', async ({ page }) => {
+    await addEmeraldApe(page)
+    await page.getByLabel('Código promocional').fill('kurio10')
+    await page.getByRole('button', { name: 'Aplicar' }).click()
+    await expect(page.getByText('KURIO10 aplicado: 10% de desconto')).toBeVisible()
+
+    await page.getByRole('link', { name: 'Conectar e finalizar' }).click()
+    await login(page, users.nova)
+    await connectAndReview(page)
+    await page.getByRole('button', { name: 'Confirmar compra' }).click()
+    await expect(page.getByTestId('order-status')).toHaveText('Seus NFTs agora estão na sua carteira')
+
+    // The next cart starts without the coupon of the previous purchase.
+    await page.goto('/nfts/emerald-ape-042')
+    await page.getByRole('button', { name: 'Adicionar ao carrinho' }).click()
+    await page.getByRole('button', { name: 'Ver carrinho' }).click()
+    await expect(page.getByTestId('summary-subtotal')).toHaveText('1.19 ETH')
+    await expect(page.getByTestId('summary-discount')).toHaveText('(-) 0.00')
+    await expect(page.getByText('KURIO10 aplicado')).toBeHidden()
   })
 
   test('rolls the quantity back and warns when the API refuses the change', async ({ page }) => {
