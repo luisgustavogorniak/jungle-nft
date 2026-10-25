@@ -10,7 +10,9 @@ Marketplace de NFTs feito para o desafio frontend da Jungle Gaming: descoberta, 
 
 - **Deploy:** https://jungle-nft-eight.vercel.app (mocks e tempo real ativos)
 - **Credenciais:** `nova@kurio.test` ou `leo@kurio.test`, senha `Kurio@2026` (cupom: `KURIO10`)
-- **O cenário escolhido persiste entre recargas.** Para voltar ao normal, abra qualquer URL com `?scenario=default`. `?mock-reset` restaura os dados iniciais.
+> **Para restaurar tudo: abra qualquer URL com `?mock-reset`** (ex.: https://jungle-nft-eight.vercel.app/?mock-reset). Volta ao estado inicial o catálogo, os usuários e sessões, os carrinhos, favoritos, carteiras e pedidos, e a aba descarta a tentativa de compra e o cupom guardados. Use antes de cada roteiro abaixo, ou quando algo parecer estranho.
+
+- **O cenário escolhido persiste entre recargas.** Para voltar ao normal, abra qualquer URL com `?scenario=default` (ou `?scenario=default&mock-reset` para restaurar tudo de uma vez).
 
 | Cenário | URL | O que ver |
 | --- | --- | --- |
@@ -80,7 +82,7 @@ Adicione parâmetros a qualquer URL. Eles são aplicados antes de o app iniciar 
 | Parâmetro | Efeito |
 | --- | --- |
 | `?scenario=<nome>` | Escolhe um cenário de rede. Persiste entre recargas até que outro seja escolhido |
-| `?mock-reset` | Restaura os dados iniciais (catálogo, usuários, carrinhos, favoritos, carteiras, pedidos) |
+| `?mock-reset` | Restaura os dados iniciais (catálogo, usuários, carrinhos, favoritos, carteiras, pedidos) e descarta a tentativa de compra e o cupom da aba |
 
 O backend simulado guarda todo o estado (usuários, sessões, carrinhos, favoritos, carteiras, pedidos) no `localStorage` do navegador, na chave `kurio.mock.db`, então tudo o que você muda sobrevive ao refresh. O estado é por navegador e por origem. `?mock-reset` descarta esse estado e restaura os dados iniciais; também é o que se usa depois que a semente muda (uma versão de schema diferente dispara o mesmo reset).
 

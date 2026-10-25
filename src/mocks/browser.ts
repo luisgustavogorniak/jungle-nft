@@ -97,8 +97,17 @@ export async function startMocking() {
       console.warn(`[mocks] ${(error as Error).message}, keeping "${getScenarioName()}"`)
     }
   }
-  if (shouldReset) await resetDb()
-  else await initDb()
+  if (shouldReset) {
+    await resetDb()
+    // The tab's own state goes too: a purchase attempt or a coupon from before the reset
+    // would point at data that no longer exists. The app reads them only after this.
+    try {
+      sessionStorage.removeItem('kurio.checkout.attempt')
+      sessionStorage.removeItem('kurio.coupon')
+    } catch {
+      // Storage blocked: nothing was kept there.
+    }
+  } else await initDb()
   // Payments left pending by a reload settle at their persisted deadline.
   resumePendingOrders()
 

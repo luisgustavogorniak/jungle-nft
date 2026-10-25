@@ -378,6 +378,14 @@ CLS no desktop, medido com um probe de `layout-shift` antes e depois: início 0,
 | Carteiras: "Adicionar" ao lado de "Carteira principal" | Não feito | O formulário da principal fica sempre aberto; o link não teria ação |
 | Login e cadastro: campos só com placeholder | Rótulos visíveis sobre cada campo, além dos placeholders do frame | O placeholder some ao digitar e não substitui o rótulo (acessibilidade) |
 | Login: "Esqueceu a senha?", "Continuar com Google" e "Continuar com Facebook" | Presentes, com o aviso "não faz parte da demonstração" | Recuperação de senha e login social estão fora do escopo; não podem parecer funcionais |
+| Login e cadastro mobile com tab bar | Sem tab bar | O frame não a desenha |
+| Detalhe e carrinho mobile: botões do frame sem estado desabilitado visível | "−" com quantidade 1 em círculo `surface-raised` com ícone `border-soft` (único estilo de stepper, igual no desktop) | Comentário pede steppers iguais e desabilitado por acessibilidade |
+| Carrinho mobile: sheet do resumo | `position: sticky` na base, com a lista rolando por trás | Evita medir a altura do sheet para reservar espaço; no fim da rolagem a lista nunca fica escondida |
+| Pagamento desktop: título e campos do frame | Rótulos 15 regular com asterisco grande; selects nativos com chevron do layout | Select nativo mantém teclado e leitor de tela |
+| Footer: contato com ícones | Texto puro, como no frame | Fidelidade |
+| Footer: faixas em largura total | Faixas dentro do container de 1200px, fundo da página nas laterais; copyright fora das faixas | Como no frame (conferido em 1440 e 1920) |
+| Home desktop: dots do hero ao lado da imagem | Mantidos sob a imagem | Comentário pede afastar o seletor da imagem |
+| Home desktop: grade de blog com cards de 268 à esquerda | 4 colunas ocupando os 1200px | Comentário aponta o desalinhamento |
 
 Os ajustes de acessibilidade em relação ao layout (foco visível em todo controle, avisos `aria-live`, "Pular para o conteúdo", rótulos e erros associados) estão na seção 12.
 
@@ -389,12 +397,3 @@ Os ajustes de acessibilidade em relação ao layout (foco visível em todo contr
 - **Regressão visual** validada apenas no Windows 11 (seção 13).
 - **A altura total do detalhe muda** quando os dados chegam, porque o conteúdo abaixo da dobra só aparece depois; a imagem e o topo da página não se mexem.
 - Perfis, carteiras e pagamentos são simulados; integrações reais (blockchain, extensões de carteira, gateways) estão fora do escopo do desafio.
-| Login e cadastro: labels visíveis | Labels `sr-only`, associados aos inputs; só os placeholders aparecem | O frame mostra só placeholders; o enunciado e a acessibilidade exigem label associado |
-| Login e cadastro mobile com tab bar | Sem tab bar | O frame não a desenha |
-| Detalhe e carrinho mobile: botões do frame sem estado desabilitado visível | "−" com quantidade 1 em círculo `surface-raised` com ícone `border-soft` (único estilo de stepper, igual no desktop) | Comentário pede steppers iguais e desabilitado por acessibilidade |
-| Carrinho mobile: sheet do resumo | `position: sticky` na base, com a lista rolando por trás | Evita medir a altura do sheet para reservar espaço; no fim da rolagem a lista nunca fica escondida |
-| Pagamento desktop: título e campos do frame | Rótulos 15 regular com asterisco grande; selects nativos com chevron do layout | Select nativo mantém teclado e leitor de tela |
-| Footer: contato com ícones | Texto puro, como no frame | Fidelidade |
-| Footer: faixas em largura total | Faixas dentro do container de 1200px, fundo da página nas laterais; copyright fora das faixas | Como no frame (conferido em 1440 e 1920) |
-| Home desktop: dots do hero ao lado da imagem | Mantidos sob a imagem | Comentário pede afastar o seletor da imagem |
-| Home desktop: grade de blog com cards de 268 à esquerda | 4 colunas ocupando os 1200px | Comentário aponta o desalinhamento |
