@@ -13,6 +13,7 @@ test.describe('orders', () => {
     await expect(title).toBeVisible()
     if (isDesktop) await expect(title).toBeFocused()
     else await expect(page.getByRole('dialog')).toHaveCount(0)
+    if (isDesktop) await expect(dialog).toHaveAttribute('aria-modal', 'true')
 
     // Direct access / refresh: the URL alone brings the receipt back.
     await page.reload()

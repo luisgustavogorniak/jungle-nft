@@ -31,11 +31,14 @@ export function FavoriteButton({ nftId, name, variant, className }: Props) {
 
   const icon = <Heart aria-hidden="true" className={cn(favorite && 'fill-current')} />
 
+  // The text button says what it will do, so it has no aria-pressed (a changing label
+  // and a pressed state would contradict each other). The icon buttons keep a fixed
+  // label with aria-pressed, the toggle button pattern.
   if (variant === 'text') {
     return (
-      <Button type="button" variant="outline" aria-pressed={favorite} onClick={onClick} className={cn('gap-2', className)}>
+      <Button type="button" variant="outline" onClick={onClick} className={cn('gap-2', className)}>
         <Heart aria-hidden="true" className={cn('size-4', favorite && 'fill-current')} />
-        Favoritar
+        {favorite ? 'Remover dos favoritos' : 'Favoritar'}
       </Button>
     )
   }

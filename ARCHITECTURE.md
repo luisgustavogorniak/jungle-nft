@@ -254,7 +254,9 @@ O app nunca importa de `src/mocks/` além da chamada `startMocking()` em `main.t
 - Avisos de tempo real e de mutations em regiões `aria-live` sempre montadas.
 - Skeletons com `role="status"` e nome acessível; sem animação sob `prefers-reduced-motion`.
 - Imagens relevantes com texto alternativo; decorativas com `alt=""`.
-- Estados que não dependem só de cor (texto, ícone, `aria-current`, `aria-pressed`).
+- Estados que não dependem só de cor (texto, ícone, `aria-current`, `aria-pressed`). O botão de texto do favorito troca o rótulo ("Favoritar" / "Remover dos favoritos") e por isso não usa `aria-pressed`, porque rótulo variável e estado pressionado se contradiriam. Os corações só com ícone mantêm o rótulo fixo com `aria-pressed`, o padrão de botão de alternância.
+- O modal do recibo tem `aria-modal="true"`: o Radix esconde o resto da página das tecnologias assistivas, mas não marca o atributo.
+- O aviso de tempo real (`LiveAnnouncer`) fica no topo: no mobile, colado à borda; no desktop, à direita, abaixo do header. No canto inferior direito ele cobria o "Aceitar novo valor" do checkout, que aparece junto com o aviso. Um E2E confere que os dois não se sobrepõem.
 - "Ver no Etherscan" e ações fora do escopo não parecem funcionar: botão desabilitado com explicação, ou aviso "não faz parte da demonstração".
 
 ## 13. Testes
@@ -331,6 +333,8 @@ CLS no desktop, medido com um probe de `layout-shift` antes e depois: início 0,
 | Checkout desktop: campos de carteira editáveis | Só leitura, vindos da `Wallet` cadastrada; editar fica em Perfil/Carteiras | O mesmo dado não pode ter duas fontes. "Tipo de carteira" virou a escolha da carteira cadastrada, e o rádio "Usar outra carteira?" saiu por ser redundante |
 | Checkout mobile sem o form do colecionador | Form em uma coluna depois das carteiras | O enunciado exige os dados |
 | Checkout mobile: menu ⋮ e "Trocar carteira" nos cards | Não feitos | Os próprios cards trocam a carteira |
+| Checkout mobile (M4) só com o total | Subtotal, desconto, taxa e total, como no desktop | Sem o detalhamento, um cupom ou uma taxa nova mudam o total sem explicação |
+| Detalhe: breadcrumb termina em "Mercado" | Termina no nome do NFT (`aria-current="page"`) | O breadcrumb indica onde o usuário está, como no carrinho e no pagamento |
 | Confirmação: só o estado "confirmado" desenhado | Variantes "pendente" e "recusado" com o mesmo layout | Estados exigidos pelo enunciado |
 | Perfil, carteiras e confirmação sem frame mobile | Uma coluna; sidebar vira abas "Dados do perfil \| Carteiras"; "Sair" no fim | O enunciado exige que funcionem no mobile |
 | Nome ENS: select ".eth" + input | Campo único com o nome completo (`nome.eth`), opcional | Simplicidade; o contrato aceita `null` |

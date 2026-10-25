@@ -46,7 +46,9 @@ test.describe('cart', () => {
     await page.getByRole('link', { name: 'Conectar e finalizar' }).click()
     await login(page, users.nova)
     await expect(page).toHaveURL('/checkout')
-    // The mobile checkout shows only the total (M4).
+    // Desktop and mobile checkouts show the breakdown, not only the total.
+    await expect(page.getByTestId('summary-subtotal')).toHaveText('2.38 ETH')
+    await expect(page.getByTestId('summary-fee')).toBeVisible()
     await expect(page.getByTestId('summary-total')).toHaveText('2.396 ETH')
   })
 

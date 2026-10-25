@@ -392,12 +392,8 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
         )}
         {connectionStatus}
         {alerts}
-        <p className="flex justify-end gap-6 text-lg font-bold">
-          Total:{' '}
-          <span data-testid="summary-total" className="text-highlight">
-            {formatEth(quote.data.total)}
-          </span>
-        </p>
+        {/* The M4 frame shows only the total; the breakdown explains a discount or a fee change. */}
+        <OrderSummary quote={quote.data} busy={quote.isFetching} />
         <Button ref={primaryButton} type="submit" variant="pill" size="xl" disabled={primaryDisabled}>
           {primaryLabel}
         </Button>

@@ -70,7 +70,16 @@ test.describe('realtime', () => {
     await expect(page.getByTestId('summary-total')).toHaveText('3.016 ETH')
     await expect(page.getByRole('button', { name: 'Confirmar compra' })).toBeDisabled()
 
-    await alert.getByRole('button', { name: 'Aceitar novo valor' }).click()
+    // The realtime notice is on screen at the same time and must not cover the button.
+    const accept = alert.getByRole('button', { name: 'Aceitar novo valor' })
+    await accept.scrollIntoViewIfNeeded()
+    await expect(notice(page)).toContainText('O preço de Emerald Ape #042')
+    const a = (await notice(page).locator('..').boundingBox())!
+    const b = (await accept.boundingBox())!
+    const overlaps = a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+    expect(overlaps).toBe(false)
+
+    await accept.click()
     await expect(alert).toBeHidden()
     await page.getByRole('button', { name: 'Confirmar compra' }).click()
 

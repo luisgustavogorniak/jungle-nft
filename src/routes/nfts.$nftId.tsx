@@ -123,7 +123,7 @@ function EditionChips({
                 onChange={() => onChange(edition.id)}
               />
               {edition.label}
-              <span className="sr-only">{soldOut ? ' (esgotada)' : ` (${edition.available} disponíveis)`}</span>
+              <span className="sr-only">{soldOut ? ' (esgotada)' : ` (${edition.available} ${edition.available === 1 ? 'disponível' : 'disponíveis'})`}</span>
             </label>
           )
         })}
@@ -178,6 +178,8 @@ function NftDetail({ nft }: { nft: Nft }) {
           <Link to="/" hash="catalogo" className="hover:text-highlight">
             Mercado
           </Link>
+          {' / '}
+          <span aria-current="page">{nft.name}</span>
         </nav>
 
         <div className="grid gap-6 md:grid-cols-[100px_444px_1fr] md:gap-6">

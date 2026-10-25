@@ -61,7 +61,7 @@ export const walletHandlers = [
       if (!wallet) return errorResponse('NOT_FOUND', 'Carteira não encontrada')
       const body = await parseBody(request, walletConnectionRequestSchema)
       if (getScenario().walletRejects) {
-        return errorResponse('WALLET_REJECTED', 'A conexão foi recusada na carteira')
+        return errorResponse('WALLET_REJECTED', 'A conexão foi recusada na carteira.')
       }
       return HttpResponse.json({ ...body, walletId: wallet.id, connectedAt: new Date().toISOString() } satisfies WalletConnection)
     }),

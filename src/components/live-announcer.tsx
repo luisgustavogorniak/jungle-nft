@@ -13,7 +13,9 @@ export function LiveAnnouncer() {
   const visible = announcement !== null && announcement.id !== dismissedId
 
   return (
-    <div className="pointer-events-none fixed inset-x-4 top-4 z-50 flex justify-center md:inset-x-auto md:top-auto md:right-6 md:bottom-6">
+    // Top of the screen, below the desktop header: at the bottom right it covered the
+    // checkout's "Aceitar novo valor", which appears together with the notice.
+    <div className="pointer-events-none fixed inset-x-4 top-4 z-50 flex justify-center md:inset-x-auto md:top-24 md:right-6">
       <div
         className={
           visible

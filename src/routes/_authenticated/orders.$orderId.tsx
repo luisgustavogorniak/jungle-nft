@@ -62,6 +62,8 @@ function OrderPage() {
     <main className="min-h-[60vh]">
       <Dialog open onOpenChange={(open) => !open && void navigate({ to: '/' })}>
         <DialogContent
+          // Radix hides the rest of the page from assistive tech but does not set aria-modal.
+          aria-modal="true"
           className="top-16 max-h-[calc(100%-5rem)] translate-y-0 rounded-none p-0 pt-6 pb-[10px] sm:max-w-[578px]"
           // Focus goes to the title, so screen readers start from the result.
           onOpenAutoFocus={(event) => {

@@ -60,10 +60,16 @@ describe('catalog search validation', () => {
 })
 
 describe('pagination window', () => {
-  it('shows first, last and neighbours with gaps', async () => {
+  it('shows every page when there are up to 5', async () => {
     const { pageWindow } = await import('@/features/catalog/page-window')
-    assert.deepEqual(pageWindow(1, 4), [1, 2, 'gap', 4])
-    assert.deepEqual(pageWindow(5, 10), [1, 'gap', 4, 5, 6, 'gap', 10])
+    assert.deepEqual(pageWindow(1, 4), [1, 2, 3, 4])
+    assert.deepEqual(pageWindow(1, 5), [1, 2, 3, 4, 5])
     assert.deepEqual(pageWindow(2, 3), [1, 2, 3])
+  })
+
+  it('shows first, last and neighbours with gaps above 5 pages', async () => {
+    const { pageWindow } = await import('@/features/catalog/page-window')
+    assert.deepEqual(pageWindow(1, 6), [1, 2, 'gap', 6])
+    assert.deepEqual(pageWindow(5, 10), [1, 'gap', 4, 5, 6, 'gap', 10])
   })
 })
