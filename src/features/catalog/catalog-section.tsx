@@ -160,9 +160,16 @@ export function CatalogSection() {
         <div className="grid min-w-0 content-start gap-6">
           {isDesktop && <CatalogToolbar />}
 
-          <Tabs value={tab} onValueChange={(value) => update({ tab: value === 'all' ? undefined : (value as typeof tab) })} className="gap-6">
+          <Tabs value={tab} onValueChange={(value) => update({ tab: value === 'all' ? undefined : (value as typeof tab) })} className="min-w-0 gap-6">
             <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
-              <TabsList variant="line" className="h-auto max-w-full justify-start gap-5 overflow-x-auto">
+              {/* The list is as tall as its triggers (the base `h-8` is smaller), so only a narrow screen scrolls, sideways. The
+            vertical padding leaves room for the focus ring, which `overflow-y-hidden` would otherwise clip. */}
+              <TabsList
+                variant="line"
+                // Chrome leaves a partly hidden focused tab clipped; bring it fully into view.
+                onFocus={(event) => event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' })}
+                className="max-w-full justify-start gap-3 overflow-x-auto overflow-y-hidden scroll-px-1.5 py-1 md:gap-5 [scrollbar-width:none] group-data-horizontal/tabs:h-auto"
+              >
                 {catalogTabs.map((value) => (
                   <TabsTrigger key={value} value={value}>
                     {tabLabels[value]}
