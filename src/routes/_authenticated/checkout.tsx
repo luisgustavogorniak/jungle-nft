@@ -30,8 +30,8 @@ function CheckoutPage() {
 
   return (
     <main>
-      <Container className="grid gap-6 py-4 md:gap-8 md:py-6">
-        <div className="grid grid-cols-[35px_1fr_35px] items-center md:block">
+      <Container className="grid gap-6 py-4 md:gap-8 md:pt-[30px] md:pb-6">
+        <div className="grid grid-cols-[35px_1fr_35px] items-center md:contents">
           <Button
             type="button"
             variant="circle"

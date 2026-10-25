@@ -17,6 +17,7 @@ import {
 import { isApiError } from '@/api/http'
 import { TextField } from '@/components/text-field'
 import { Button } from '@/components/ui/button'
+import { NativeSelect } from '@/components/native-select'
 import { Label } from '@/components/ui/label'
 import { OrderSummary } from '@/features/cart/order-summary'
 import { cartKeys } from '@/features/cart/queries'
@@ -245,19 +246,18 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
   const networkField = (
     <div className="grid gap-1.5">
       <Label htmlFor="checkout-network">
-        Rede<span aria-hidden="true" className="text-coral">*</span>
+        Rede<span aria-hidden="true" className="text-[22px] leading-none text-coral">*</span>
       </Label>
-      <select
+      <NativeSelect
         id="checkout-network"
         {...form.register('network')}
-        className="h-10 rounded-sm border border-input bg-transparent px-3 text-sm focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
       >
         {networkIds.map((id) => (
           <option key={id} value={id} className="bg-card">
             {networkLabels[id]}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </div>
   )
   const emailField = (
@@ -430,20 +430,19 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
           />
           <div className="grid gap-1.5">
             <Label htmlFor="checkout-wallet">
-              Tipo de carteira<span aria-hidden="true" className="text-coral">*</span>
+              Tipo de carteira<span aria-hidden="true" className="text-[22px] leading-none text-coral">*</span>
             </Label>
-            <select
+            <NativeSelect
               id="checkout-wallet"
               value={walletId}
               onChange={(event) => selectWallet(wallets.find((candidate) => candidate.id === event.target.value)!)}
-              className="h-10 rounded-sm border border-input bg-transparent px-3 text-sm focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
             >
               {wallets.map((option) => (
                 <option key={option.id} value={option.id} className="bg-card">
                   {option.nickname} · {shortAddress(option.address)}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
           <TextField label="Código de indicação" readOnly value={wallet.referralCode} className="text-copy" />
           {emailField}

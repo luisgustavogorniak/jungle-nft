@@ -54,8 +54,8 @@ export function OrderReceipt({
   const date = `${String(updatedAt.getDate()).padStart(2, '0')} ${month[0].toUpperCase()}${month.slice(1)}, ${updatedAt.getFullYear()}`
 
   return (
-    <article aria-labelledby={inDialog ? undefined : 'order-title'} className="grid gap-6">
-      <header className="grid justify-items-center gap-4 border-b border-primary pb-5 text-center">
+    <article aria-labelledby={inDialog ? undefined : 'order-title'} className="grid gap-4">
+      <header className="grid justify-items-center gap-4 border-b border-primary pb-4 text-center">
         {order.status === 'confirmed' && <ThankYouIcon />}
         {order.status === 'pending' && <Loader2 aria-hidden="true" className="size-12 animate-spin text-primary" />}
         <Heading
@@ -80,7 +80,7 @@ export function OrderReceipt({
         )}
       </header>
 
-      <dl className="grid grid-cols-2 gap-4 border-b border-primary pb-5 text-sm sm:grid-cols-[repeat(4,auto)] sm:justify-between sm:gap-0 sm:px-10 sm:divide-x sm:divide-primary sm:whitespace-nowrap">
+      <dl className="grid grid-cols-2 gap-4 border-b border-primary pb-3 text-sm sm:grid-cols-[repeat(4,auto)] sm:justify-between sm:gap-0 sm:px-10 sm:divide-x sm:divide-primary sm:whitespace-nowrap">
         <div className="grid content-start gap-1 sm:px-4 sm:first:pl-0 sm:last:pr-0">
           <dt className="text-copy">ID da transação</dt>
           <dd data-testid="order-tx" className="text-copy">
@@ -146,7 +146,7 @@ export function OrderReceipt({
         </dl>
       </section>
 
-      <footer className="grid justify-items-center gap-4 pb-6 text-center text-copy">
+      <footer className="grid justify-items-center gap-4 pb-4 text-center text-copy">
         {order.status === 'confirmed' && (
           <>
             <p className="max-w-[460px]">

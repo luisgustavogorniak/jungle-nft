@@ -59,7 +59,7 @@ function DetailSkeleton() {
   return (
     // Same grid, paddings and image box as NftDetail, so the artwork does not move when the data arrives.
     <main role="status" aria-label="Carregando NFT" className="pb-44 md:pb-0">
-      <Container className="grid gap-6 md:py-6">
+      <Container className="grid gap-6 md:gap-4 md:pt-[30px] md:pb-6">
         <Skeleton className="hidden h-[22px] w-40 md:block" />
         <div className="grid gap-6 md:grid-cols-[100px_444px_1fr] md:gap-6">
           <div className="hidden content-start gap-4 md:grid">
@@ -174,7 +174,7 @@ function NftDetail({ nft }: { nft: Nft }) {
 
   return (
     <main>
-      <Container className="grid gap-6 md:py-6">
+      <Container className="grid gap-6 md:gap-4 md:pt-[30px] md:pb-6">
         <nav aria-label="Você está em" className="hidden text-[15px] font-bold md:block">
           <Link to="/" className="hover:text-highlight">
             Início

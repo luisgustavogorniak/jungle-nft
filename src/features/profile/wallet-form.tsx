@@ -14,6 +14,7 @@ import {
 import { TextField } from '@/components/text-field'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { NativeSelect } from '@/components/native-select'
 import { Label } from '@/components/ui/label'
 import { ServerError } from '@/features/auth/auth-forms'
 import { networkLabels, providerLabels } from '@/features/checkout/labels'
@@ -78,13 +79,12 @@ function SelectField({
     <div className="grid gap-1.5">
       <Label htmlFor={id}>
         {label}
-        <span aria-hidden="true" className="text-coral">*</span>
+        <span aria-hidden="true" className="text-[22px] leading-none text-coral">*</span>
       </Label>
-      <select
+      <NativeSelect
         id={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
-        className="h-10 rounded-sm border border-input bg-transparent px-3 text-sm focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none aria-invalid:border-destructive"
         {...selectProps}
       >
         <option value="" disabled className="bg-card">
@@ -95,7 +95,7 @@ function SelectField({
             {text}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       {error && (
         <p id={`${id}-error`} className="text-xs text-destructive">
           {error}

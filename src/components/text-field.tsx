@@ -36,7 +36,7 @@ export function TextField({ label, hideLabel, error, required, id, type, classNa
       <Label htmlFor={inputId} className={hideLabel ? 'sr-only' : undefined}>
         {label}
         {required && (
-          <span aria-hidden="true" className="text-coral">*</span>
+          <span aria-hidden="true" className="text-[22px] leading-none text-coral">*</span>
         )}
       </Label>
       {isPassword ? (

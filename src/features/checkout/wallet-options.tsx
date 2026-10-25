@@ -24,7 +24,7 @@ export function ProviderOptionsDesktop({ field, value }: { field: UseFormRegiste
             value === provider ? 'border-primary' : 'border-border'
           }`}
         >
-          <input type="radio" value={provider} {...field} className="size-4 accent-primary" />
+          <input type="radio" value={provider} {...field} className="kurio-radio" />
           {provider === 'walletconnect' ? (
             <span className="flex items-center gap-2">
               WalletConnect
@@ -55,7 +55,7 @@ export function ProviderOptionsMobile({ field }: { field: UseFormRegisterReturn 
             {medallions[provider]}
           </span>
           <span className="flex-1">{providerLabels[provider]}</span>
-          <input type="radio" value={provider} {...field} className="size-4 accent-primary" />
+          <input type="radio" value={provider} {...field} className="kurio-radio" />
         </label>
       ))}
     </fieldset>
@@ -73,19 +73,19 @@ export function WalletCards({
   onSelect: (wallet: Wallet) => void
 }) {
   return (
-    <fieldset className="grid gap-5">
+    <fieldset className="grid gap-3">
       <legend className="mb-4 font-bold">Carteira conectada</legend>
       {wallets.map((wallet) => (
         <label
           key={wallet.id}
-          className="flex cursor-pointer items-start gap-4 rounded-[14px] bg-card px-5 py-4 shadow-card has-focus-visible:ring-3 has-focus-visible:ring-ring/40"
+          className="flex cursor-pointer items-start gap-4 rounded-[14px] bg-card px-5 py-3.5 shadow-card-y has-focus-visible:ring-3 has-focus-visible:ring-ring/40"
         >
           <input
             type="radio"
             name="wallet"
             checked={value === wallet.id}
             onChange={() => onSelect(wallet)}
-            className="mt-1.5 size-4 accent-primary"
+            className="kurio-radio mt-1"
           />
           <span className="grid gap-0.5">
             <span className="font-bold">{wallet.nickname}</span>

@@ -143,3 +143,17 @@
   background-repeat: no-repeat;
   animation: shimmer 1.6s linear infinite;
 }
+
+/* Radio of the layout: a ring in primary, filled with a dot when selected (the native one turns gray on dark). */
+@utility kurio-radio {
+  appearance: none;
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 9999px;
+  border: 1.5px solid var(--primary);
+  background: transparent;
+  &:checked {
+    background: radial-gradient(circle, var(--primary) 0 45%, transparent 50%);
+  }
+}
