@@ -101,7 +101,7 @@ test.describe('checkout', () => {
     expect(await listOrders(page)).toEqual(created)
   })
 
-  test('a timed-out order confirmed before the retry opens confirmed, even with its quote expired', async ({ page }) => {
+  test('a timed-out order keeps its panel while pending and drops it once the server confirms it', async ({ page }) => {
     test.slow() // the client gives up after its 10s timeout
     await checkoutAsNova(page, 'order-timeout')
     await connectAndReview(page)
@@ -111,17 +111,69 @@ test.describe('checkout', () => {
     await expect(attempt).toBeVisible({ timeout: 15_000 })
     const [created] = await listOrders(page)
 
-    // The confirmation arrives before the retry: the order leaves the cart, and the quote of
-    // the attempt expires. The panel stays, since it does not depend on the cart.
-    await settlePendingOrders(page)
-    await expectEventReceived(page, 'order.updated', created.id)
+    // The attempt lists what it buys.
+    await expect(attempt.getByRole('list', { name: 'Itens da tentativa' })).toContainText('1× Emerald Ape #042')
+    await expect(attempt.getByRole('list', { name: 'Itens da tentativa' })).toContainText('Total: 1.206 ETH')
+    // While it is pending the panel stays, even with its quote expired.
     await mockControls(page, 'expireQuotes')
+    await page.reload()
     await expect(attempt).toBeVisible()
 
-    await attempt.getByRole('button', { name: 'Tentar novamente' }).click()
-    await expect(page).toHaveURL(`/orders/${created.id}`)
-    await expect(page.getByTestId('order-status')).toHaveText('Seus NFTs agora estão na sua carteira')
-    expect(await listOrders(page)).toHaveLength(1)
+    // The confirmation is a final answer from the server: the attempt is dropped, nothing is sent again.
+    const keys = recordOrderKeys(page)
+    await settlePendingOrders(page)
+    await expectEventReceived(page, 'order.updated', created.id)
+    await expect(attempt).toBeHidden()
+    await expect(page.getByText('Seu carrinho está vazio.')).toBeVisible()
+    expect(await page.evaluate(() => sessionStorage.getItem('kurio.checkout.attempt'))).toBeNull()
+    expect(keys).toHaveLength(0)
+    expect(await listOrders(page)).toEqual([expect.objectContaining({ id: created.id, status: 'confirmed' })])
+  })
+
+  test('an old attempt that does not match the cart is discarded: normal checkout, nothing sent again', async ({ page }) => {
+    await checkoutAsNova(page)
+    // Left by an earlier session: four other NFTs, a quote that no longer exists, no answer from the server.
+    await page.evaluate(() => {
+      const line = (nftId: string) => ({ nftId, editionId: '1-50', quantity: 1, name: nftId })
+      sessionStorage.setItem(
+        'kurio.checkout.attempt',
+        JSON.stringify({
+          key: crypto.randomUUID(),
+          userId: 'user-nova',
+          body: { quoteId: 'quote-old', walletId: 'wallet-old', network: 'ethereum', provider: 'metamask', collector: {} },
+          lines: ['neon-vessel-552', 'a', 'b', 'c'].map(line),
+          total: '7.366',
+        }),
+      )
+    })
+    const keys = recordOrderKeys(page)
+    await page.reload()
+
+    await expect(page.getByRole('button', { name: 'Conectar carteira' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Pedido em andamento' })).toBeHidden()
+    expect(await page.evaluate(() => sessionStorage.getItem('kurio.checkout.attempt'))).toBeNull()
+    expect(keys).toHaveLength(0)
+
+    await connectAndReview(page)
+    await page.getByRole('button', { name: 'Confirmar compra' }).click()
+    await expect(page).toHaveURL(/\/orders\/order-/)
+    expect(keys).toHaveLength(1)
+    const orders = await listOrders(page)
+    expect(orders).toHaveLength(1)
+    expect(orders[0]).toMatchObject({ lines: [expect.objectContaining({ nftId: 'emerald-ape-042', quantity: 1 })] })
+  })
+
+  test('the unresolved attempt can be discarded to start again', async ({ page }) => {
+    test.slow() // the client gives up after its 10s timeout
+    await checkoutAsNova(page, 'order-timeout')
+    await connectAndReview(page)
+    await page.getByRole('button', { name: 'Confirmar compra' }).click()
+    const attempt = page.getByRole('region', { name: 'Pedido em andamento' })
+    await expect(attempt).toBeVisible({ timeout: 15_000 })
+
+    await attempt.getByRole('button', { name: 'Descartar e começar de novo' }).click()
+    await expect(attempt).toBeHidden()
+    expect(await page.evaluate(() => sessionStorage.getItem('kurio.checkout.attempt'))).toBeNull()
   })
 
   test('repeated clicks on confirm create a single order', async ({ page }) => {

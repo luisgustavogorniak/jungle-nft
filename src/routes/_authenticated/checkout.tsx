@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cartQueryOptions, useCartQuote } from '@/features/cart/queries'
 import { CheckoutForm } from '@/features/checkout/checkout-form'
 import { PendingOrderNotice } from '@/features/orders/pending-order-notice'
-import { useUnresolvedAttempt } from '@/features/orders/queries'
+import { useRetryableAttempt } from '@/features/orders/queries'
 import { UnresolvedOrder } from '@/features/orders/unresolved-order'
 import { errorMessage } from '@/lib/form-errors'
 
@@ -24,7 +24,7 @@ function CheckoutPage() {
   const quote = useCartQuote()
   const cart = useQuery(cartQueryOptions)
   const wallets = useQuery({ queryKey: ['wallets', session.user.id], queryFn: ({ signal }) => walletsApi.list(signal) })
-  const attempt = useUnresolvedAttempt(session.user.id)
+  const { attempt, checking } = useRetryableAttempt(session.user.id, cart.data?.items, quote.data?.total)
 
   const failed = quote.isError && !quote.data ? quote : wallets.isError ? wallets : null
 
@@ -56,7 +56,7 @@ function CheckoutPage() {
           <span aria-current="page">Pagamento</span>
         </nav>
 
-        {/* An unresolved attempt replaces the form, whatever the cart says: its order may exist. */}
+        {/* An unresolved attempt that still matches the cart (or whose order exists) replaces the form. */}
         {attempt ? (
           <UnresolvedOrder attempt={attempt} />
         ) : (
@@ -71,7 +71,7 @@ function CheckoutPage() {
               Tentar novamente
             </Button>
           </div>
-        ) : !quote.data || !cart.data || !wallets.data ? (
+        ) : checking || !quote.data || !cart.data || !wallets.data ? (
           <div role="status" aria-label="Carregando pagamento" className="grid gap-6 lg:grid-cols-[minmax(0,763px)_405px] lg:justify-between">
             <Skeleton className="h-[420px] w-full" />
             <Skeleton className="h-[420px] w-full" />

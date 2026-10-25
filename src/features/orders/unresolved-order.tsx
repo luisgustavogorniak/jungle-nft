@@ -2,14 +2,15 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { formatEth } from '@/lib/eth'
 import { errorMessage } from '@/lib/form-errors'
-import { pendingOrdersQueryOptions, useCreateOrder, type Attempt } from './queries'
+import { discardAttempt, pendingOrdersQueryOptions, useCreateOrder, type Attempt } from './queries'
 
 /**
  * Shown instead of the checkout form while an attempt has no definitive answer.
  * The retry sends the same request with the same key: the API returns the
  * order it already created, pending or confirmed, so nothing is bought twice.
- * It does not depend on the cart, which empties when the order is confirmed.
+ * The panel lists what the attempt buys, and discarding it brings the form back.
  */
 export function UnresolvedOrder({ attempt }: { attempt: Attempt }) {
   const navigate = useNavigate()
@@ -35,9 +36,20 @@ export function UnresolvedOrder({ attempt }: { attempt: Attempt }) {
         A resposta do seu pedido não chegou, mas ele pode já ter sido criado. Tente novamente: a mesma tentativa é reenviada e
         nada é cobrado duas vezes.
       </p>
+      <ul aria-label="Itens da tentativa" className="grid gap-1 text-sm">
+        {attempt.lines.map((line) => (
+          <li key={`${line.nftId}/${line.editionId}`}>
+            {line.quantity}× {line.name}
+          </li>
+        ))}
+        <li className="font-bold">Total: {formatEth(attempt.total)}</li>
+      </ul>
       <div className="flex flex-wrap items-center gap-4">
         <Button type="button" disabled={createOrder.isPending} onClick={retry}>
           {createOrder.isPending ? 'Consultando pedido…' : 'Tentar novamente'}
+        </Button>
+        <Button type="button" variant="outline" disabled={createOrder.isPending} onClick={discardAttempt}>
+          Descartar e começar de novo
         </Button>
         {order && (
           <Link to="/orders/$orderId" params={{ orderId: order.id }} className="text-sm font-bold text-highlight underline">

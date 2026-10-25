@@ -98,6 +98,12 @@ export const ordersApi = {
     const { data } = await http.get('/orders', { params: { status: 'pending' }, signal })
     return z.array(orderSchema).parse(data)
   },
+
+  /** The order created with this Idempotency-Key, or null when the server has none. */
+  async findByAttempt(idempotencyKey: string, signal?: AbortSignal): Promise<Order | null> {
+    const { data } = await http.get('/orders', { params: { idempotencyKey }, signal })
+    return z.array(orderSchema).parse(data)[0] ?? null
+  },
 }
 
 export const favoritesApi = {

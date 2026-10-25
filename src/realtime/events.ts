@@ -49,6 +49,7 @@ export function applyOrderUpdated(queryClient: QueryClient, payload: unknown) {
   }
 
   void queryClient.invalidateQueries({ queryKey: orderKeys.pending, exact: true })
+  void queryClient.invalidateQueries({ queryKey: orderKeys.attempts })
   // A confirmed order removed the purchased items from the server cart and used
   // the coupon: the next cart starts without it. A declined one keeps both.
   if (event.data.status === 'confirmed') {

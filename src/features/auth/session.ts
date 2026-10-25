@@ -4,6 +4,7 @@ import type { Session } from '@/api/contracts'
 import { getToken, setToken } from '@/api/credentials'
 import { isApiError } from '@/api/http'
 import { setCoupon } from '@/features/cart/coupon'
+import { discardAttempt, discardAttemptOfOtherUser } from '@/features/orders/queries'
 import { socket } from '@/realtime/socket'
 
 export const sessionQueryKey = ['session'] as const
@@ -41,6 +42,7 @@ function dropCachedData(queryClient: QueryClient) {
  */
 export function startSession(queryClient: QueryClient, session: Session) {
   setToken(session.token)
+  discardAttemptOfOtherUser(session.user.id)
   dropCachedData(queryClient)
   queryClient.setQueryData(sessionQueryKey, session)
 }
@@ -83,6 +85,8 @@ export function useLogout() {
     // the token on the server is best effort.
     mutationFn: () => {
       const token = getToken()
+      // Kept on a session expiration (the same user logs back in to retry it), not on a logout.
+      discardAttempt()
       endSession(queryClient)
       return authApi.logout(token)
     },

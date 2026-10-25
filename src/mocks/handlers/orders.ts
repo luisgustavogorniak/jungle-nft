@@ -104,13 +104,15 @@ export const orderHandlers = [
     }),
   ),
 
-  /** Orders of the current user, optionally filtered by status (`?status=pending`). */
+  /** Orders of the current user, optionally filtered by status (`?status=pending`) or by `?idempotencyKey=`. */
   http.get(
     '/api/orders',
     withScenario('orders.read', ({ request }) => {
       const user = requireUser(request)
-      const status = new URL(request.url).searchParams.get('status')
-      const own = Object.values(db().orders).filter((order) => order.userId === user.id)
+      const params = new URL(request.url).searchParams
+      const status = params.get('status')
+      const key = params.get('idempotencyKey')
+      const own = Object.values(db().orders).filter((order) => order.userId === user.id && (!key || order.idempotencyKey === key))
       for (const order of own) settleIfDue(order)
       const orders = own
         .filter((order) => !status || order.status === status)

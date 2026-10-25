@@ -1,14 +1,16 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { queryOptions, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { ordersApi } from '@/api/commerce'
-import type { CreateOrderRequest, Order } from '@/api/contracts'
+import type { CartItem, CreateOrderRequest, Order } from '@/api/contracts'
 import { isApiError } from '@/api/http'
 import { useSession } from '@/features/auth/session'
+import type { EthString } from '@/lib/eth'
 
 export const orderKeys = {
   all: ['orders'] as const,
   detail: (orderId: string) => ['orders', orderId] as const,
   pending: ['orders', { status: 'pending' }] as const,
+  attempts: ['orders', 'attempt'] as const,
 }
 
 export const pendingOrdersQueryOptions = queryOptions({
@@ -40,8 +42,9 @@ export type Attempt = {
   key: string
   userId: string
   body: CreateOrderRequest
-  /** The cart lines the order buys: the body only has a quote id. Absent in attempts saved before this field. */
-  lines?: { nftId: string; editionId: string }[]
+  /** What the order buys, and for how much: the body only has a quote id. */
+  lines: { nftId: string; editionId: string; quantity: number; name: string }[]
+  total: EthString
 }
 
 const ATTEMPT_KEY = 'kurio.checkout.attempt'
@@ -60,7 +63,9 @@ let held: Attempt | null = unresolved
 function load(): Attempt | null {
   try {
     const value = sessionStorage.getItem(ATTEMPT_KEY)
-    return value ? (JSON.parse(value) as Attempt) : null
+    const attempt = value ? (JSON.parse(value) as Attempt) : null
+    // An attempt saved before `lines` and `total` existed cannot be checked against the cart.
+    return attempt && Array.isArray(attempt.lines) && attempt.lines.every((line) => line.quantity) && attempt.total ? attempt : null
   } catch {
     // Storage unavailable or an old format: no attempt to recover.
     return null
@@ -80,10 +85,20 @@ function save(attempt: Attempt | null, visible: Attempt | null) {
 }
 
 /** Starts a new attempt for this request. It stays hidden while the first request is in flight. */
-export function startAttempt(userId: string, body: CreateOrderRequest, lines: Attempt['lines']): Attempt {
-  const attempt = { key: crypto.randomUUID(), userId, body, lines }
+export function startAttempt(userId: string, body: CreateOrderRequest, lines: Attempt['lines'], total: EthString): Attempt {
+  const attempt = { key: crypto.randomUUID(), userId, body, lines, total }
   save(attempt, null)
   return attempt
+}
+
+/** Forgets the attempt: it can no longer be sent again. */
+export function discardAttempt() {
+  save(null, null)
+}
+
+/** Drops an attempt that belongs to someone else than the user starting a session. */
+export function discardAttemptOfOtherUser(userId: string | null) {
+  if (held && held.userId !== userId) discardAttempt()
 }
 
 /**
@@ -93,7 +108,7 @@ export function startAttempt(userId: string, body: CreateOrderRequest, lines: At
  */
 export function isHeldByOwnOrder(queryClient: QueryClient, nftId: string, editionId: string): boolean {
   const same = (line: { nftId: string; editionId: string }) => line.nftId === nftId && line.editionId === editionId
-  if (held?.lines?.some(same)) return true
+  if (held?.lines.some(same)) return true
   return queryClient.getQueryData<Order[]>(orderKeys.pending)?.some((order) => order.lines.some(same)) ?? false
 }
 
@@ -108,6 +123,48 @@ export function useUnresolvedAttempt(userId: string): Attempt | null {
     () => null,
   )
   return attempt?.userId === userId ? attempt : null
+}
+
+function sameLines(attempt: Attempt, items: CartItem[]): boolean {
+  const key = (line: { nftId: string; editionId: string; quantity: number }) => `${line.nftId}/${line.editionId}x${line.quantity}`
+  const cart = new Set(items.map(key))
+  return attempt.lines.length === cart.size && attempt.lines.every((line) => cart.has(key(line)))
+}
+
+/**
+ * The unresolved attempt that may still be retried, after checking it against the server and
+ * the current cart. It is discarded when its order already has a final status (confirmed or
+ * declined), or, when the server never created it, when the cart or the quote total no longer
+ * match it: a retry would buy something else than what the user sees.
+ * `checking` is true while that is still unknown.
+ */
+export function useRetryableAttempt(
+  userId: string,
+  items: CartItem[] | undefined,
+  total: EthString | undefined,
+): { attempt: Attempt | null; checking: boolean } {
+  const attempt = useUnresolvedAttempt(userId)
+  const lookup = useQuery({
+    queryKey: [...orderKeys.attempts, attempt?.key],
+    queryFn: ({ signal }) => ordersApi.findByAttempt(attempt!.key, signal),
+    enabled: Boolean(attempt),
+    staleTime: 0,
+  })
+  const order = lookup.data
+  const stale = Boolean(
+    attempt &&
+      (order
+        ? order.status !== 'pending'
+        : lookup.isSuccess && items && total && (!sameLines(attempt, items) || attempt.total !== total)),
+  )
+  useEffect(() => {
+    if (stale) discardAttempt()
+  }, [stale])
+
+  if (!attempt || stale) return { attempt: null, checking: false }
+  // Unknown while the lookup runs. If it fails, the panel stays: the order may exist.
+  const known = lookup.isError || Boolean(order) || (lookup.isSuccess && Boolean(items && total))
+  return { attempt: known ? attempt : null, checking: !known }
 }
 
 export function useCreateOrder() {

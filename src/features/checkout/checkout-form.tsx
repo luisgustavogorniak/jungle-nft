@@ -200,7 +200,13 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
           note: values.note.trim() || null,
         },
       },
-      fresh.data.lines.map(({ nftId, editionId }) => ({ nftId, editionId })),
+      fresh.data.lines.map(({ nftId, editionId, quantity }) => ({
+        nftId,
+        editionId,
+        quantity,
+        name: items.find((item) => item.nftId === nftId && item.editionId === editionId)?.name ?? nftId,
+      })),
+      fresh.data.total,
     )
     createOrder.mutate(attempt, orderCallbacks)
   }
