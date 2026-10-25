@@ -82,15 +82,15 @@ export function ProfileForm({ user }: { user: User }) {
         <TextField label="Nome ENS" placeholder="nome.eth" error={errors.ensName?.message} {...form.register('ensName')} />
         <TextField label="Apelido da carteira" error={errors.walletNickname?.message} {...form.register('walletNickname')} />
         <div role="group" aria-labelledby="avatar-label" className="grid gap-1.5">
-        <p id="avatar-label" className="text-sm leading-none font-medium">
+        <p id="avatar-label" className="text-[15px] leading-none">
           Avatar
         </p>
         <div className="flex items-center gap-4">
-          <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card">
+          <div className="flex size-[50px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-card">
             {avatarUrl ? (
               <img src={avatarUrl} alt="Seu avatar" className="size-full object-cover" />
             ) : (
-              <ImageIcon aria-hidden="true" className="size-8 text-copy" />
+              <ImageIcon aria-hidden="true" className="size-6 text-highlight" />
             )}
           </div>
           <div className="grid justify-items-start gap-1">
@@ -107,7 +107,7 @@ export function ProfileForm({ user }: { user: User }) {
                   event.target.value = ''
                 }}
               />
-              <Button type="button" size="sm" onClick={() => fileInput.current?.click()}>
+              <Button type="button" onClick={() => fileInput.current?.click()}>
                 Alterar
               </Button>
               {avatarUrl && (

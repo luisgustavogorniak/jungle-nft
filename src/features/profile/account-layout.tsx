@@ -25,7 +25,7 @@ export function AccountLayout() {
 
   return (
     <main>
-      <Container className="grid gap-6 py-4 md:grid-cols-[310px_minmax(0,1fr)] md:items-start md:gap-10 md:py-12">
+      <Container className="grid gap-6 py-4 md:grid-cols-[310px_minmax(0,1fr)] md:items-start md:gap-7 md:pt-8 md:pb-12">
         <nav aria-label="Conta" className="md:hidden">
           <ul className="flex border-b border-primary/40">
             <li className="flex flex-1">
@@ -43,7 +43,7 @@ export function AccountLayout() {
 
         <aside className="hidden bg-card py-2 md:block">
           <nav aria-label="Meu perfil">
-            <h2 className="px-4 py-4 text-lg font-bold">Meu perfil</h2>
+            <h2 className="px-4 py-3 text-lg font-bold">Meu perfil</h2>
             <ul>
               <li>
                 <Link to="/profile" activeOptions={{ exact: true }} className={sideItem}>
