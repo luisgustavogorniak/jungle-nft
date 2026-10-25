@@ -6,13 +6,30 @@ Marketplace de NFTs feito para o desafio frontend da Jungle Gaming: descoberta, 
 - **Repositório:** https://github.com/luisgustavogorniak/jungle-nft
 - **Arquitetura, contratos e decisões:** [ARCHITECTURE.md](./ARCHITECTURE.md)
 
+## Avaliação rápida
+
+- **Deploy:** https://jungle-nft-eight.vercel.app (mocks e tempo real ativos)
+- **Credenciais:** `nova@kurio.test` ou `leo@kurio.test`, senha `Kurio@2026` (cupom: `KURIO10`)
+- **O cenário escolhido persiste entre recargas.** Para voltar ao normal, abra qualquer URL com `?scenario=default`. `?mock-reset` restaura os dados iniciais.
+
+| Cenário | URL | O que ver |
+| --- | --- | --- |
+| Compra completa | [`/nfts/emerald-ape-042?mock-reset`](https://jungle-nft-eight.vercel.app/nfts/emerald-ape-042?mock-reset) | Adicione ao carrinho, entre como Nova, conecte a carteira, revise e confirme: a confirmação só aparece depois do `order.updated` pelo Socket.IO |
+| Pagamento lento com F5 | [`/nfts/emerald-ape-042?scenario=slow-payment&mock-reset`](https://jungle-nft-eight.vercel.app/nfts/emerald-ape-042?scenario=slow-payment&mock-reset) | Compre como acima e aperte F5 na página do pedido enquanto ele está pendente (8 s): o estado volta da API e a confirmação chega sozinha |
+| Preço muda no carrinho | [`/cart?scenario=price-change`](https://jungle-nft-eight.vercel.app/cart?scenario=price-change) | Com um item no carrinho, cerca de 4 s depois ele fica 10% mais caro: aviso `aria-live`, resumo recalculado e, no checkout, "Confirmar compra" bloqueado até "Aceitar novo valor" |
+| Timeout do pedido | [`/checkout?scenario=order-timeout`](https://jungle-nft-eight.vercel.app/checkout?scenario=order-timeout) | Logado e com itens no carrinho, confirme a compra: após 10 s aparece "Pedido em andamento", e "Tentar novamente" abre o mesmo pedido, sem duplicar |
+
+Os demais cenários e os controles de console estão em [Cenários dos mocks e reset](#cenários-dos-mocks-e-reset).
+
 ## Stack
 
 React 19, TypeScript, Vite, TanStack Router, TanStack Query, Axios, Socket.IO client, Tailwind CSS 4, shadcn/ui, MSW 2 (com `@mswjs/socket.io-binding`), Playwright e Lighthouse. Também: Zod, React Hook Form.
 
 ## Setup
 
-Requisitos: Node 24+ e npm 11+.
+Requisitos: **Node 24 ou mais novo** (obrigatório) e npm 11+. O `.nvmrc` fixa a versão (`nvm use`).
+
+O Node 24 é exigido porque os testes unitários (`npm run test:unit`) rodam os arquivos `.ts` direto no Node, sem transpilador, usando a execução nativa de TypeScript e `module.registerHooks` (veja `tests/unit/setup.ts`). Em versões mais antigas, esse comando pode falhar.
 
 ```sh
 npm install
@@ -142,24 +159,15 @@ O Playwright faz o build do app e o serve com `vite preview` na porta 4173, o me
 
 **Zero skipped.** A confirmação do pedido é um modal no desktop e uma página no mobile, então o teste confere o formato de cada projeto em vez de pular um deles.
 
-**Instabilidade conhecida.** O Playwright está com `retries: 1`. Ao longo de várias execuções completas da suíte, um teste (`profile.spec.ts`, "shows validation and API errors on the fields", desktop) falhou uma vez, durante uma rodada completa com 3 workers, e não voltou a falhar: passou em 16 de 16 execuções isoladas em paralelo e em todas as rodadas completas seguintes. Investiguei o teste e o código: o formulário só monta depois de o perfil carregar e usa `defaultValues` no mount, sem `reset` que sobrescreva o que foi digitado, e as asserções esperam o resultado do save, então não encontrei uma corrida como a do teste de sessão expirada (que já foi corrigida). A causa não foi identificada; a hipótese é carga de CPU na máquina durante a rodada. O retry evita que uma falha rara derrube a suíte, mas não esconde nada: um teste que só passa na segunda tentativa aparece como **flaky** na linha de resumo (`N flaky`) e no relatório HTML. Se a linha de resumo mostrar `flaky`, abra o trace da primeira tentativa.
+**Instabilidade conhecida.** O Playwright usa `retries: 1`; um teste que só passa na segunda tentativa aparece como `flaky` no resumo e no relatório HTML. Um teste de perfil falhou uma vez numa rodada completa e nunca mais; a causa não foi identificada ([detalhes](./ARCHITECTURE.md#13-testes)).
 
 **Relatório e traces.** Toda execução grava um relatório HTML em `playwright-report/` (`npm run test:e2e:report` o abre). Um teste que falha mantém o trace, um screenshot e o contexto de erro em `test-results/<teste>/`; abra um trace com `npx playwright show-trace test-results/<teste>/trace.zip` ou pelo relatório.
 
 ### Regressão visual
 
-`e2e/visual.spec.ts` captura início, detalhe, carrinho e pagamento, página inteira, em desktop e mobile. Os dados são estáveis: reset da semente, cenário `default`, `page.clock` com data fixa, animações desligadas, fontes e imagens carregadas antes da captura.
+`e2e/visual.spec.ts` captura início, detalhe, carrinho e pagamento, em desktop e mobile (`npm run test:e2e:visual`; `npm run test:e2e:visual:update` regenera as baselines).
 
-As baselines são versionadas em `e2e/__screenshots__/visual.spec.ts/<projeto>/`. Elas **não** têm sufixo por sistema operacional (veja `snapshotPathTemplate` em `playwright.config.ts`), então um checkout em macOS ou Linux compara com as mesmas imagens em vez de falhar por falta de baseline. A renderização de fonte ainda difere entre sistemas, então a comparação tolera 2% de pixels diferentes (`maxDiffPixelRatio`, `threshold: 0.2`). Isso absorve antialiasing e hinting, mas ainda pega uma seção sumida, uma cor errada ou um layout quebrado.
-
-As baselines foram geradas no Windows 11 com o Chromium que acompanha o Playwright 1.64. A tolerância só foi exercitada nessa máquina, então a portabilidade para macOS e Linux é esperada, não verificada. Se um teste visual falhar em outro sistema sem nenhuma mudança na interface, gere uma baseline local e rode de novo:
-
-```sh
-npm run test:e2e:visual:update   # reescreve as baselines para esta máquina
-npm run test:e2e
-```
-
-Para pular os testes visuais, use `npm run test:e2e:functional`. Não versione baselines regeneradas em outra máquina sem revisar a diferença.
+**Aviso:** as baselines foram geradas no Windows 11 e só foram comparadas lá. Se um teste visual falhar em outro sistema sem mudança na interface, gere uma baseline local e não versione as imagens sem revisar a diferença. A tolerância e a portabilidade estão em [ARCHITECTURE.md](./ARCHITECTURE.md#13-testes).
 
 ## Lighthouse
 
@@ -186,7 +194,7 @@ Metas: Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥ 95, SEO ≥ 
 
 Ferramentas: Lighthouse 13.5.0, Chromium 156 (Playwright 1.64.1), Node 24.22, Windows 11, Intel i5-9400F. Throttling simulado do Lighthouse (mobile: 4G lento e CPU 4× mais lenta).
 
-A auditoria também serviu para achar problemas reais, corrigidos no app e não no script. A primeira rodada deixou o carrinho no desktop abaixo da meta (Performance 87, CLS 0,254) por deslocamentos de layout no header e no footer durante o carregamento. O SEO ficou em 91 e 92 porque o app não tinha `robots.txt`: o `vite preview` devolvia o `index.html` no lugar, e o Lighthouse o lia como um robots.txt inválido. E o pagamento no desktop tinha 97 em acessibilidade por um link distinguível só pela cor ("Aplique aqui"), agora sublinhado. Os detalhes estão em [ARCHITECTURE.md](./ARCHITECTURE.md#14-performance-lighthouse).
+As correções que a auditoria motivou no app (CLS do carrinho, `robots.txt` e o link do pagamento) estão em [ARCHITECTURE.md](./ARCHITECTURE.md#14-performance-lighthouse).
 
 ## Deploy
 
