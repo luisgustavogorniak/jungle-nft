@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createFileRoute, Link, useCanGoBack, useNavigate, useRouter } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ShoppingCart, Star } from 'lucide-react'
+import { ChevronLeft, Mail, ShoppingCart, Star } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from 'cn'
 import type { Edition, EditionId, Nft, NetworkId } from '@/api/contracts'
@@ -17,6 +17,7 @@ import { nftQueryOptions } from '@/features/catalog/queries'
 import { FavoriteButton } from '@/features/favorites/favorite-button'
 import { errorMessage } from '@/lib/form-errors'
 import { formatEth } from '@/lib/eth'
+import { LinkedInMark, XMark } from '@/components/brand-icons'
 
 export const Route = createFileRoute('/nfts/$nftId')({
   component: NftDetailPage,
@@ -109,7 +110,7 @@ function EditionChips({
             <label
               key={edition.id}
               className={cn(
-                'relative cursor-pointer rounded-full border border-border px-3 py-1 text-[13px] text-copy md:border-transparent md:text-sm has-[:checked]:border-primary has-[:checked]:font-medium has-[:checked]:text-highlight has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring',
+                'relative cursor-pointer rounded-full border border-border px-3 py-1 text-[13px] text-copy md:text-sm has-[:checked]:border-primary has-[:checked]:font-medium has-[:checked]:text-highlight has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring',
                 soldOut && 'cursor-not-allowed line-through opacity-50',
               )}
             >
@@ -297,7 +298,7 @@ function NftDetail({ nft }: { nft: Nft }) {
               )}
             </div>
 
-            <dl className="grid gap-3.5 text-[15px] text-muted-foreground max-md:mt-1 md:gap-1">
+            <dl className="grid gap-3.5 text-[15px] text-muted-foreground max-md:mt-1 md:gap-2">
               <div>
                 <dt className="inline">ID do token: </dt>
                 <dd className="inline">{nft.tokenId}</dd>
@@ -311,6 +312,9 @@ function NftDetail({ nft }: { nft: Nft }) {
                 <dd className="inline">{nft.attributes.join(', ')}</dd>
               </div>
             </dl>
+
+            {/* Desktop only, as in the frame. The links share the current page. */}
+            <ShareLinks name={nft.name} />
           </div>
         </div>
 
@@ -321,13 +325,33 @@ function NftDetail({ nft }: { nft: Nft }) {
   )
 }
 
+function ShareLinks({ name }: { name: string }) {
+  const url = encodeURIComponent(window.location.href)
+  const text = encodeURIComponent(name)
+  const link = 'flex size-6 items-center justify-center rounded-sm text-foreground hover:text-highlight focus-visible:ring-3 focus-visible:ring-ring'
+  return (
+    <div className="hidden items-center gap-3 md:flex">
+      <h2 className="text-[15px] font-bold">Compartilhar este NFT:</h2>
+      <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${url}`} target="_blank" rel="noreferrer" aria-label="Compartilhar no LinkedIn (abre em nova aba)" className={link}>
+        <LinkedInMark className="size-[18px]" />
+      </a>
+      <a href={`mailto:?subject=${text}&body=${url}`} aria-label="Compartilhar por correio eletrônico" className={link}>
+        <Mail aria-hidden="true" className="size-[18px]" />
+      </a>
+      <a href={`https://twitter.com/intent/tweet?text=${text}&url=${url}`} target="_blank" rel="noreferrer" aria-label="Compartilhar no X (abre em nova aba)" className={link}>
+        <XMark className="size-4" />
+      </a>
+    </div>
+  )
+}
+
 function DetailTabs({ nft }: { nft: Nft }) {
   const network = networkLabels[nft.network]
   return (
     <Tabs defaultValue="details" className="hidden gap-6 md:flex">
-      <TabsList variant="line" className="h-auto w-full justify-start gap-8 border-b border-border">
-        <TabsTrigger value="details">Detalhes do NFT</TabsTrigger>
-        <TabsTrigger value="reviews">Avaliações de colecionadores ({nft.reviewsCount})</TabsTrigger>
+      <TabsList variant="line" className="h-auto w-full justify-start gap-8 border-b border-primary/40 text-[17px]">
+        <TabsTrigger value="details" className="text-[17px]">Detalhes do NFT</TabsTrigger>
+        <TabsTrigger value="reviews" className="text-[17px]">Avaliações de colecionadores ({nft.reviewsCount})</TabsTrigger>
       </TabsList>
       <TabsContent value="details" className="grid gap-4 text-sm leading-6 text-copy">
         <p>{nft.details}</p>

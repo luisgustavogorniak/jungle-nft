@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Trash2 } from 'lucide-react'
+import { cn } from 'cn'
 import type { CartItem } from '@/api/contracts'
 import { MAX_QUANTITY, QuantityStepper } from '@/components/quantity-stepper'
 import { Button } from '@/components/ui/button'
@@ -9,7 +10,7 @@ import { useIsDesktop } from '@/lib/use-media-query'
 import { useRemoveCartItem, useUpdateCartItem } from './queries'
 
 /** Columns shared by the desktop header and rows: NFT, unit price, quantity, total, remove. */
-export const ROW_COLUMNS = 'grid-cols-[minmax(0,1fr)_100px_150px_110px_40px]'
+export const ROW_COLUMNS = 'grid-cols-[311px_138px_136px_minmax(0,1fr)_72px]'
 
 function useLineActions(item: CartItem) {
   const update = useUpdateCartItem()
@@ -24,9 +25,9 @@ function useLineActions(item: CartItem) {
   }
 }
 
-function RemoveButton({ name, onClick, disabled }: { name: string; onClick: () => void; disabled: boolean }) {
+function RemoveButton({ name, onClick, disabled, className }: { name: string; onClick: () => void; disabled: boolean; className?: string }) {
   return (
-    <Button type="button" variant="ghost" size="icon-sm" className="max-md:size-6" aria-label={`Remover ${name} do carrinho`} disabled={disabled} onClick={onClick}>
+    <Button type="button" variant="ghost" size="icon-sm" className={cn('max-md:size-6', className)} aria-label={`Remover ${name} do carrinho`} disabled={disabled} onClick={onClick}>
       <Trash2 className="size-5 text-copy max-md:size-[18px]" />
     </Button>
   )
@@ -36,7 +37,7 @@ function RemoveButton({ name, onClick, disabled }: { name: string; onClick: () =
 function DesktopRow({ item }: { item: CartItem }) {
   const line = useLineActions(item)
   return (
-    <div className={`grid ${ROW_COLUMNS} min-h-[70px] items-center gap-x-4 bg-card`}>
+    <div className={`grid ${ROW_COLUMNS} min-h-[70px] items-center bg-card`}>
       <Link to="/nfts/$nftId" params={{ nftId: item.nftId }} className="flex min-w-0 items-center gap-4">
         <img src={item.image} alt="" width={70} height={70} className="size-[70px] shrink-0 object-cover" />
         <span className="min-w-0">
@@ -50,7 +51,7 @@ function DesktopRow({ item }: { item: CartItem }) {
       <p className="font-bold text-copy">{formatEth(item.unitPrice)}</p>
       <QuantityStepper compact label={`Quantidade de ${item.name}`} value={item.quantity} max={line.max} onChange={line.setQuantity} />
       <p className="font-bold text-highlight">{line.total}</p>
-      <RemoveButton name={item.name} onClick={line.remove} disabled={line.removing} />
+      <RemoveButton name={item.name} onClick={line.remove} disabled={line.removing} className="justify-self-center" />
     </div>
   )
 }

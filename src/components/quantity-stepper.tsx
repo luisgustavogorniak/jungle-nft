@@ -22,8 +22,8 @@ type Props = {
 /** Minus is disabled at 1 and plus at the limit, so the buttons never fail silently. */
 export function QuantityStepper({ value, max, onChange, label = 'Quantidade', disabled = false, caption = false, compact = false, className }: Props) {
   const button = cn(
-    'size-6 rounded-full bg-primary text-primary-foreground shadow-card hover:bg-primary/85 disabled:bg-secondary disabled:text-[#55321f] disabled:opacity-100 disabled:shadow-none [&_svg]:size-4',
-    compact ? 'md:size-5 md:[&_svg]:size-3' : 'md:size-8',
+    'size-6 rounded-full bg-primary text-primary-foreground shadow-[0_4px_12px_-2px_rgb(20_13_10/0.15)] hover:bg-primary/85 disabled:bg-secondary disabled:text-[#55321f] disabled:opacity-100 disabled:shadow-none [&_svg]:size-4',
+    compact ? 'md:size-5 md:[&_svg]:size-3' : 'md:size-8 md:[&_svg]:size-5',
   )
   return (
     <div role="group" aria-label={label} className={cn('flex items-center gap-3 md:gap-4', className)}>

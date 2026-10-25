@@ -58,7 +58,7 @@ export function CouponForm({ quote }: { quote: Quote | undefined }) {
           autoComplete="off"
           aria-invalid={message ? true : undefined}
           aria-describedby={message ? `${id}-error` : undefined}
-          className="h-[50px] rounded-full border-0 bg-transparent px-4 text-xs focus-visible:ring-0 md:h-10 md:rounded-none"
+          className="h-[50px] rounded-full border-0 bg-transparent px-4 text-xs text-ellipsis focus-visible:ring-0 md:h-10 md:rounded-none"
         />
         <Button
           type="submit"

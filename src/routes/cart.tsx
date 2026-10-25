@@ -36,7 +36,7 @@ function CartPage() {
 
   return (
     <main>
-      <Container className="grid gap-6 py-4 max-md:pb-0 md:gap-4 md:py-6">
+      <Container className="grid gap-6 py-4 max-md:pb-0 md:gap-4 md:pt-4 md:pb-6">
         <div className="grid grid-cols-[35px_1fr_35px] items-center md:block">
           <Button
             type="button"
@@ -89,7 +89,7 @@ function CartPage() {
               <h2 id="items-title" className="sr-only">
                 Itens do carrinho
               </h2>
-              <div aria-hidden="true" className={`hidden ${ROW_COLUMNS} gap-x-4 border-b border-border pb-3 font-bold md:grid`}>
+              <div aria-hidden="true" className={`hidden ${ROW_COLUMNS} border-b border-primary/40 pb-3 font-bold md:grid`}>
                 <span>NFTs</span>
                 <span>Preço</span>
                 <span>Edições</span>
@@ -112,7 +112,7 @@ function CartPage() {
               aria-labelledby="summary-title"
               className="grid content-start gap-5 max-md:sticky max-md:bottom-0 max-md:z-30 max-md:-mx-6 max-md:max-h-[75dvh] max-md:overflow-y-auto max-md:rounded-t-[40px] max-md:bg-card max-md:px-6 max-md:pt-6 max-md:pb-[max(2rem,env(safe-area-inset-bottom))] max-md:shadow-tabbar"
             >
-              <h2 id="summary-title" className="border-b border-border pb-3 text-lg font-bold max-md:sr-only">
+              <h2 id="summary-title" className="border-b border-primary/40 pb-3 text-lg font-bold max-md:sr-only">
                 Resumo da carteira
               </h2>
               <CouponForm quote={quote.data} />
