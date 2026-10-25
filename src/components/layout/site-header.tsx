@@ -9,8 +9,10 @@ import { OutOfScopeLink } from './out-of-scope'
 
 export const SEARCH_INPUT_ID = 'catalog-search'
 
-const navLink = 'border-b-2 border-transparent pb-1 text-base text-foreground transition-colors hover:text-highlight'
-const navActive = 'border-primary font-bold text-highlight'
+// The underline of the active item sits on the divider line, 10px below the row (as in the frame).
+const navLink =
+  "relative flex h-[35px] items-center text-base text-foreground transition-colors after:absolute after:inset-x-0 after:-bottom-2.5 after:h-0.5 after:bg-primary after:opacity-0 hover:text-highlight"
+const navActive = 'font-bold text-highlight after:opacity-100'
 
 /** Desktop and tablet header. Mobile navigation is the tab bar. */
 export function SiteHeader() {
@@ -30,8 +32,10 @@ export function SiteHeader() {
   }
 
   return (
-    <header className={cn('hidden md:block', !inMarket && 'border-b border-primary/40')}>
-      <Container className="grid grid-cols-[1fr_auto_1fr] items-center py-6">
+    <header className="hidden md:block">
+      <Container className="pt-6">
+        {/* Divider inside the 1200px column, 9px under the row of 35px. */}
+        <div className={cn('grid grid-cols-[1fr_auto_1fr] items-center pb-[9px]', !inMarket && 'border-b border-primary/40')}>
         <Link to="/" className="justify-self-start text-sm font-bold tracking-[0.1em]">
           KURIO
         </Link>
@@ -63,16 +67,16 @@ export function SiteHeader() {
         </nav>
 
         {/* h-10 = the tallest state (the "Entrar" button), so the header does not grow when the session resolves. */}
-        <div className="flex h-10 items-center gap-4 justify-self-end">
+        <div className="flex h-[35px] items-center gap-4 justify-self-end">
           <Button variant="ghost" size="icon-sm" aria-label="Buscar NFTs" onClick={() => void focusSearch()}>
-            <Search className="size-5" />
+            <Search className="size-[22px]" />
           </Button>
           <Link
             to="/cart"
             aria-label={cartCount > 0 ? `Carrinho (${cartCount} ${cartCount === 1 ? 'item' : 'itens'})` : 'Carrinho'}
             className="relative inline-flex size-8 items-center justify-center rounded-md hover:bg-secondary"
           >
-            <ShoppingBag className="size-5" />
+            <ShoppingBag className="size-[22px]" />
             {cartCount > 0 && (
               <span
                 aria-hidden="true"
@@ -102,13 +106,14 @@ export function SiteHeader() {
                 </Button>
               </div>
             ) : (
-              <Button asChild className="w-[100px] gap-2 font-medium">
+              <Button asChild className="h-[35px] w-[100px] gap-2 font-medium">
                 <Link to="/login" search={{ redirect: undefined, reason: undefined }}>
                   <LogIn className="size-4" />
                   Entrar
                 </Link>
               </Button>
             ))}
+        </div>
         </div>
       </Container>
     </header>

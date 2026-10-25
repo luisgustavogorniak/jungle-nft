@@ -13,7 +13,7 @@ const promos = [
   },
   {
     title: 'Arte digital selecionada e muito mais',
-    text: 'Explore novos artistas, coleções verificadas e obras digitais que definem a cultura da internet.',
+    text: 'Explore novos artistas, coleções verificadas e obras digitais que definem a cultura.',
     image: art.apeGreen.small,
     search: { categories: ['digital-art' as const] },
   },
@@ -22,11 +22,12 @@ const promos = [
 export function Promos() {
   return (
     <section aria-label="Promoções" className="hidden py-12 md:block">
-      <Container className="grid grid-cols-2 gap-6">
+      <Container className="grid grid-cols-2 gap-7">
         {promos.map((promo) => (
-          <article key={promo.title} className="grid min-h-[250px] grid-cols-[200px_1fr] items-center gap-6 bg-card p-6">
-            <img src={promo.image} alt="" width={200} height={200} loading="lazy" className="aspect-square w-full rounded-[15px] object-cover" />
-            <div className="grid justify-items-end gap-3 text-right">
+          <article key={promo.title} className="grid min-h-[250px] grid-cols-[287px_1fr] overflow-hidden rounded-lg bg-card">
+            {/* Artwork bleeds to the card edges; the text block is right-aligned, as in the frame. */}
+            <img src={promo.image} alt="" width={287} height={250} loading="lazy" className="size-full object-cover" />
+            <div className="grid content-center justify-items-end gap-3 py-6 pr-7 pl-4 text-right">
               <h2 className="text-lg font-bold">{promo.title}</h2>
               <p className="line-clamp-3 text-sm leading-6 text-copy">{promo.text}</p>
               <Button asChild size="sm" className="gap-2">

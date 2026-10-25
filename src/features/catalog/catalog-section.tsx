@@ -32,7 +32,7 @@ const sortLabels: Record<(typeof catalogSorts)[number], string> = {
   popular: 'Mais populares',
 }
 
-const GRID = 'grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-6 md:gap-y-12 xl:gap-y-[72px] max-md:[&>*:nth-child(even)]:mt-6'
+const GRID = 'grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-6 md:gap-y-12 xl:grid-cols-[repeat(3,258px)] xl:justify-between xl:gap-y-[72px] max-md:[&>*:nth-child(even)]:mt-6'
 
 /** Search as you type: the URL is updated after a pause, or immediately on Enter. */
 function CatalogSearchBox() {

@@ -55,23 +55,23 @@ const eyebrow = 'text-xs font-medium tracking-[0.1em] text-copy md:text-sm'
 
 function DesktopHero() {
   return (
-    <section aria-labelledby="hero-title" className="py-12">
-      <Container className="grid items-center gap-8 md:grid-cols-[1fr_minmax(0,450px)]">
-        <div className="grid justify-items-start gap-8">
+    <section aria-labelledby="hero-title" className="pt-8 pb-14">
+      <Container className="grid items-start gap-8 md:grid-cols-[1fr_minmax(0,450px)]">
+        {/* Indented 40px and 44px below the image top, as in the frame. */}
+        <div className="grid justify-items-start gap-8 pt-11 pl-10">
           <div className="grid gap-1">
             <p className={eyebrow}>Bem-vindo à Kurio</p>
             <h1 id="hero-title" className="max-w-[560px] text-[43px] leading-[70px] font-bold">
               SEJA DONO DO FUTURO DA ARTE DIGITAL
             </h1>
+            <p className="max-w-xl text-sm leading-6 text-copy">
+              Descubra NFTs selecionados de criadores emergentes e consagrados. Colecione arte digital rara, apoie artistas e
+              tenha uma parte da cultura da internet.
+            </p>
           </div>
-          <p className="max-w-xl text-sm leading-6 text-copy">
-            Descubra NFTs selecionados de criadores emergentes e consagrados. Colecione arte digital rara, apoie artistas e
-            tenha uma parte da cultura da internet.
-          </p>
           <Button asChild className="h-10 w-[140px] gap-2">
             <Link to="/" hash="catalogo">
               EXPLORAR
-              <ArrowRight className="size-4" />
             </Link>
           </Button>
         </div>

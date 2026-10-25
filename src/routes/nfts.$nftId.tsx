@@ -66,7 +66,7 @@ function DetailSkeleton() {
               <Skeleton key={i} className="size-[100px] rounded-lg" />
             ))}
           </div>
-          <div className="mt-4 md:mt-0 md:p-4">
+          <div className="max-md:px-1 max-md:pt-[66px] md:p-4">
             <Skeleton className="aspect-[361/356] w-full rounded-3xl md:aspect-square" />
           </div>
           <div className="grid content-start gap-4">
