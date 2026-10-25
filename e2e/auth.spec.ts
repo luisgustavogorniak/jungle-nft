@@ -146,9 +146,9 @@ test.describe('account and session', () => {
 
     await expect(page).toHaveURL(/\/login\?.*redirect=%2Fprofile.*reason=expired/)
     await expect(page.getByRole('status').filter({ hasText: 'Sua sessão expirou' })).toBeVisible()
-    // On desktop the modal hides the header from the accessibility tree: the open login is the signed-out state.
+    // The open login is the signed-out state: a modal on desktop, a page without tab bar on mobile.
     if ((page.viewportSize()?.width ?? 0) >= 768) await expect(page.getByRole('dialog', { name: 'Entrar' })).toBeVisible()
-    else await expectSignedOut(page)
+    else await expect(page.getByRole('heading', { name: 'Entrar' })).toBeVisible()
 
     await login(page, users.nova)
     await expect(page).toHaveURL('/profile')

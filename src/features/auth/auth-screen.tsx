@@ -41,14 +41,14 @@ export function AuthScreen({ mode, search }: { mode: Mode; search: z.infer<typeo
 
   if (!isDesktop) {
     return (
-      <main className="mx-auto grid max-w-sm gap-4 p-8">
-        <p className="text-center text-[32px] font-bold tracking-[0.1em]">KURIO</p>
-        <h1 className="text-xl font-bold">{copy[mode].title}</h1>
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-10 px-7 pt-[132px] pb-6">
+        <p className="mb-[52px] text-center text-[32px] leading-none font-bold tracking-[0.1em]">KURIO</p>
+        <h1 className={`text-center leading-4 font-bold ${mode === "login" ? "text-xl" : "text-lg"}`}>{copy[mode].title}</h1>
         {expired}
         {form}
-        <p className="text-sm">
+        <p className="text-center text-sm text-copy">
           {mode === 'login' ? 'Novo na Kurio? ' : 'Já tem uma conta? '}
-          <Link to={mode === 'login' ? '/register' : '/login'} search={{ redirect: search.redirect }} className="underline">
+          <Link to={mode === 'login' ? '/register' : '/login'} search={{ redirect: search.redirect }} className="hover:underline">
             {mode === 'login' ? 'Crie uma conta' : 'Entre'}
           </Link>
         </p>
@@ -63,7 +63,7 @@ export function AuthScreen({ mode, search }: { mode: Mode; search: z.infer<typeo
         <DialogContent
           // Radix hides the rest of the page from assistive tech but does not set aria-modal.
           aria-modal="true"
-          className="top-16 max-h-[calc(100%-5rem)] translate-y-0 gap-6 rounded-lg px-[80px] pt-12 pb-12 sm:max-w-[500px]"
+          className={`top-16 max-h-[calc(100%-5rem)] translate-y-0 gap-6 rounded-lg px-[80px] pt-12 pb-12 sm:max-w-[500px] ${mode === 'login' ? 'min-h-[600px]' : 'min-h-[656px]'}`}
           // Focus goes to the first field, not to the close button.
           onOpenAutoFocus={(event) => {
             event.preventDefault()
@@ -77,17 +77,17 @@ export function AuthScreen({ mode, search }: { mode: Mode; search: z.infer<typeo
               void navigate({ to: value === 'login' ? '/login' : '/register', search: { redirect: search.redirect } })
             }
           >
-            <TabsList variant="line" className="w-full justify-start gap-4">
-              <TabsTrigger value="login" className="text-xl">
+            <TabsList variant="line" className="w-full justify-center gap-3">
+              <TabsTrigger value="login" className="text-xl font-medium data-active:font-medium after:hidden">
                 Entrar
               </TabsTrigger>
               <span aria-hidden="true" className="h-6 w-px bg-coral" />
-              <TabsTrigger value="register" className="text-xl">
+              <TabsTrigger value="register" className="text-xl font-medium data-active:font-medium after:hidden">
                 Criar conta
               </TabsTrigger>
             </TabsList>
-            <DialogDescription className="mt-4 text-sm text-copy">{copy[mode].subtitle}</DialogDescription>
-            <TabsContent value={mode} className="mt-4 grid gap-4">
+            <DialogDescription className="mt-6 text-center text-[13px] leading-snug text-copy">{copy[mode].subtitle}</DialogDescription>
+            <TabsContent value={mode} className="mt-7 grid gap-4">
               {expired}
               <div ref={firstField}>{form}</div>
             </TabsContent>

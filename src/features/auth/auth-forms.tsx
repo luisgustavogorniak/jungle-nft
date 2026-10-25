@@ -2,11 +2,17 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { OutOfScopeLink } from '@/components/layout/out-of-scope'
+import { FacebookIcon, GoogleIcon } from '@/components/brand-icons'
 import { TextField } from '@/components/text-field'
 import { Button } from '@/components/ui/button'
 import { applyServerErrors } from '@/lib/form-errors'
 import { useIsDesktop } from '@/lib/use-media-query'
 import { useLogin, useRegister } from './session'
+
+/** 50px / r10 on mobile (M5), 40px / r5 in the desktop modal (D6). */
+const authInput = 'h-[50px] rounded-[10px] md:h-10 md:rounded-[5px]'
+/** 60px / r10 on mobile, 45px / r5 on desktop. */
+const authSubmit = 'mt-7 text-base h-[60px] rounded-[10px] md:mt-0 md:h-[45px] md:rounded-[5px]'
 
 const loginFormSchema = z.object({
   email: z.email('Informe um e-mail válido'),
@@ -42,14 +48,20 @@ export function ServerError({ message }: { message?: string }) {
 
 /** "Ou continue com" + social buttons. Social sign-in is outside the challenge scope, so they answer honestly. */
 function SocialSignIn() {
-  const social = 'h-10 rounded-sm border border-input text-[13px] font-medium text-copy hover:text-foreground'
+  const social = 'h-10 gap-3 rounded-[5px] border border-input text-[13px] font-medium text-copy hover:text-foreground flex items-center justify-center'
   return (
-    <div className="grid gap-3">
-      <p className="flex items-center gap-3 text-sm text-copy before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
+    <div className="mt-7 grid gap-4 md:mt-0 md:gap-3">
+      <p className="flex items-center gap-3 text-[13px] text-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border md:-mx-20">
         Ou continue com
       </p>
-      <OutOfScopeLink className={social}>Continuar com Google</OutOfScopeLink>
-      <OutOfScopeLink className={social}>Continuar com Facebook</OutOfScopeLink>
+      <OutOfScopeLink className={social}>
+        <GoogleIcon className="size-[22px]" />
+        Continuar com Google
+      </OutOfScopeLink>
+      <OutOfScopeLink className={social}>
+        <FacebookIcon className="size-6" />
+        Continuar com Facebook
+      </OutOfScopeLink>
     </div>
   )
 }
@@ -73,6 +85,8 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
         autoComplete="email"
         placeholder="contato@email.com"
         required
+        hideLabel
+        className={authInput}
         error={errors.email?.message}
         {...form.register('email')}
       />
@@ -80,13 +94,16 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
         label="Senha"
         type="password"
         autoComplete="current-password"
+        placeholder="***********"
         required
+        hideLabel
+        className={authInput}
         error={errors.password?.message}
         {...form.register('password')}
       />
       <OutOfScopeLink className="justify-self-end text-sm text-highlight hover:underline">Esqueceu a senha?</OutOfScopeLink>
       <ServerError message={errors.root?.server?.message} />
-      <Button type="submit" disabled={login.isPending}>
+      <Button type="submit" className={authSubmit} disabled={login.isPending}>
         {login.isPending ? 'Entrando…' : 'Entrar'}
       </Button>
       <SocialSignIn />
@@ -113,6 +130,8 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         autoComplete="username"
         placeholder="Nome de usuário"
         required
+        hideLabel
+        className={authInput}
         error={errors.username?.message}
         {...form.register('username')}
       />
@@ -122,6 +141,8 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         autoComplete="email"
         placeholder="Digite seu e-mail"
         required
+        hideLabel
+        className={authInput}
         error={errors.email?.message}
         {...form.register('email')}
       />
@@ -131,6 +152,8 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         autoComplete="new-password"
         placeholder="Senha"
         required
+        hideLabel
+        className={authInput}
         error={errors.password?.message}
         {...form.register('password')}
       />
@@ -140,11 +163,13 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         autoComplete="new-password"
         placeholder="Confirmar senha"
         required
+        hideLabel
+        className={authInput}
         error={errors.confirmPassword?.message}
         {...form.register('confirmPassword')}
       />
       <ServerError message={errors.root?.server?.message} />
-      <Button type="submit" disabled={register.isPending}>
+      <Button type="submit" className={authSubmit} disabled={register.isPending}>
         {register.isPending ? 'Criando conta…' : isDesktop ? 'Criar conta' : 'Criar perfil'}
       </Button>
       <SocialSignIn />
