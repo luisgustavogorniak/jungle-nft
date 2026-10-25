@@ -159,27 +159,19 @@ O Playwright faz o build do app e o serve com `vite preview` na porta 4173, o me
 
 **Zero skipped.** A confirmação do pedido é um modal no desktop e uma página no mobile, então o teste confere o formato de cada projeto em vez de pular um deles.
 
-**Instabilidade conhecida.** O Playwright usa `retries: 1`; um teste que só passa na segunda tentativa aparece como `flaky` no resumo e no relatório HTML. Um teste de perfil falhou uma vez numa rodada completa e nunca mais; a causa não foi identificada ([detalhes](./ARCHITECTURE.md#13-testes)).
+**Instabilidade conhecida.** `retries: 1`: um teste que só passa na segunda tentativa aparece como `flaky` no resumo. Um teste de perfil falhou uma vez e nunca mais ([detalhes](./ARCHITECTURE.md#13-testes)).
 
 **Relatório e traces.** Toda execução grava um relatório HTML em `playwright-report/` (`npm run test:e2e:report` o abre). Um teste que falha mantém o trace, um screenshot e o contexto de erro em `test-results/<teste>/`; abra um trace com `npx playwright show-trace test-results/<teste>/trace.zip` ou pelo relatório.
 
 ### Regressão visual
 
-`e2e/visual.spec.ts` captura início, detalhe, carrinho e pagamento, em desktop e mobile (`npm run test:e2e:visual`; `npm run test:e2e:visual:update` regenera as baselines).
+`npm run test:e2e:visual` (`npm run test:e2e:visual:update` regenera as baselines).
 
-**Aviso:** as baselines foram geradas no Windows 11 e só foram comparadas lá. Se um teste visual falhar em outro sistema sem mudança na interface, gere uma baseline local e não versione as imagens sem revisar a diferença. A tolerância e a portabilidade estão em [ARCHITECTURE.md](./ARCHITECTURE.md#13-testes).
+**Aviso:** as baselines foram geradas no Windows 11 e só comparadas lá. Em outro sistema, gere baselines locais e não as versione sem revisar ([detalhes](./ARCHITECTURE.md#13-testes)).
 
 ## Lighthouse
 
-`npm run lighthouse` faz o build, serve o app numa porta própria e audita **início, detalhe, carrinho e pagamento** nos perfis **mobile** e **desktop**: 3 execuções por página e perfil, com a **mediana** de cada categoria e de LCP, CLS e TBT. Leva uns 10 a 15 minutos.
-
-As condições: build de produção, mocks ligados, cenário `default`. Início e detalhe são medidos como visitante; carrinho e pagamento, logados como Nova Sato com um item no carrinho (o script faz o login com o Chromium do Playwright e audita esse mesmo navegador). O cache HTTP é limpo antes de cada execução, então toda medição é de carga fria; o `localStorage` e o service worker são mantidos porque guardam a sessão e o backend simulado. Nada é simplificado para melhorar a nota: imagens, fontes, mocks e tempo real ficam ativos.
-
-Os relatórios ficam em [`reports/lighthouse/`](./reports/lighthouse): o HTML e o JSON da execução mediana de cada página e perfil, mais `summary.json` e `summary.md` com as notas de todas as execuções, as medianas, as versões das ferramentas e o ambiente.
-
-### Resultados (mediana de 3 execuções)
-
-Metas: Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥ 95, SEO ≥ 90. **Todas as páginas e perfis atingem as metas.**
+`npm run lighthouse` (mediana de 3 execuções; metas: Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥ 95, SEO ≥ 90, todas atingidas). Condições, ferramentas e correções em [ARCHITECTURE.md](./ARCHITECTURE.md#14-performance-lighthouse); relatórios em [`reports/lighthouse/`](./reports/lighthouse).
 
 | Página | Perfil | Perf. | A11y | BP | SEO | LCP | CLS | TBT |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -191,10 +183,6 @@ Metas: Performance ≥ 90, Accessibility ≥ 95, Best Practices ≥ 95, SEO ≥ 
 | Carrinho | desktop | 100 | 100 | 100 | 100 | 762 ms | 0,001 | 0 ms |
 | Pagamento | mobile | 98 | 100 | 100 | 100 | 2100 ms | 0 | 93 ms |
 | Pagamento | desktop | 100 | 100 | 100 | 100 | 810 ms | 0 | 0 ms |
-
-Ferramentas: Lighthouse 13.5.0, Chromium 156 (Playwright 1.64.1), Node 24.22, Windows 11, Intel i5-9400F. Throttling simulado do Lighthouse (mobile: 4G lento e CPU 4× mais lenta).
-
-As correções que a auditoria motivou no app (CLS do carrinho, `robots.txt` e o link do pagamento) estão em [ARCHITECTURE.md](./ARCHITECTURE.md#14-performance-lighthouse).
 
 ## Deploy
 

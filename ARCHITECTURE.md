@@ -286,6 +286,8 @@ O app nunca importa de `src/mocks/` além da chamada `startMocking()` em `main.t
 | mobile | 98 a 99 | 100 | 100 | 100 | 1,95 a 2,10 s | ≤ 0,003 | 6 a 93 ms |
 | desktop | 100 | 100 | 100 | 100 | 0,61 a 0,81 s | ≤ 0,002 | 0 a 13 ms |
 
+**Ferramentas.** Lighthouse 13.5.0, Chromium 156 (Playwright 1.64.1), Node 24.22, Windows 11, Intel i5-9400F. Throttling simulado do Lighthouse (mobile: 4G lento e CPU 4× mais lenta). O cache HTTP é limpo antes de cada execução; o script leva uns 10 a 15 minutos.
+
 A tabela por página está no README e em `reports/lighthouse/summary.md`. As medições vêm de uma única máquina local; os valores absolutos variam entre máquinas, e as notas usam o throttling simulado do Lighthouse, menos sensível a isso.
 
 **O que a primeira auditoria encontrou (e foi corrigido no app).** O carrinho no desktop saiu com Performance 87, por CLS 0,254. A causa não era o carregamento do carrinho em si:
