@@ -185,18 +185,22 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
       return
     }
     const values = form.getValues()
-    const attempt = startAttempt(user.id, {
-      quoteId: fresh.data.id,
-      walletId: values.walletId,
-      network: values.network,
-      provider: values.provider,
-      collector: {
-        displayName: values.displayName,
-        username: values.username,
-        email: values.email,
-        note: values.note.trim() || null,
+    const attempt = startAttempt(
+      user.id,
+      {
+        quoteId: fresh.data.id,
+        walletId: values.walletId,
+        network: values.network,
+        provider: values.provider,
+        collector: {
+          displayName: values.displayName,
+          username: values.username,
+          email: values.email,
+          note: values.note.trim() || null,
+        },
       },
-    })
+      fresh.data.lines.map(({ nftId, editionId }) => ({ nftId, editionId })),
+    )
     createOrder.mutate(attempt, orderCallbacks)
   }
 

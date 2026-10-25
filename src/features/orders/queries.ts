@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
-import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { ordersApi } from '@/api/commerce'
-import type { CreateOrderRequest } from '@/api/contracts'
+import type { CreateOrderRequest, Order } from '@/api/contracts'
 import { isApiError } from '@/api/http'
 import { useSession } from '@/features/auth/session'
 
@@ -36,7 +36,13 @@ export function usePendingOrderFor() {
 }
 
 /** One purchase attempt: the exact request and its idempotency key, for a retry that changes nothing. */
-export type Attempt = { key: string; userId: string; body: CreateOrderRequest }
+export type Attempt = {
+  key: string
+  userId: string
+  body: CreateOrderRequest
+  /** The cart lines the order buys: the body only has a quote id. Absent in attempts saved before this field. */
+  lines?: { nftId: string; editionId: string }[]
+}
 
 const ATTEMPT_KEY = 'kurio.checkout.attempt'
 const listeners = new Set<() => void>()
@@ -48,6 +54,8 @@ const listeners = new Set<() => void>()
  * (timeout, dropped connection, 5xx, or a reload while it was in flight).
  */
 let unresolved: Attempt | null = load()
+/** Any attempt without a definitive answer, including the one whose first request is still in flight. */
+let held: Attempt | null = unresolved
 
 function load(): Attempt | null {
   try {
@@ -60,6 +68,7 @@ function load(): Attempt | null {
 }
 
 function save(attempt: Attempt | null, visible: Attempt | null) {
+  held = attempt
   unresolved = visible
   try {
     if (attempt) sessionStorage.setItem(ATTEMPT_KEY, JSON.stringify(attempt))
@@ -71,10 +80,21 @@ function save(attempt: Attempt | null, visible: Attempt | null) {
 }
 
 /** Starts a new attempt for this request. It stays hidden while the first request is in flight. */
-export function startAttempt(userId: string, body: CreateOrderRequest): Attempt {
-  const attempt = { key: crypto.randomUUID(), userId, body }
+export function startAttempt(userId: string, body: CreateOrderRequest, lines: Attempt['lines']): Attempt {
+  const attempt = { key: crypto.randomUUID(), userId, body, lines }
   save(attempt, null)
   return attempt
+}
+
+/**
+ * True when the units of this cart line are reserved by the user's own order: one
+ * already pending, or an attempt that may have created it (its response is lost or
+ * still in flight). The reservation lowers the availability, which is not a sell-out.
+ */
+export function isHeldByOwnOrder(queryClient: QueryClient, nftId: string, editionId: string): boolean {
+  const same = (line: { nftId: string; editionId: string }) => line.nftId === nftId && line.editionId === editionId
+  if (held?.lines?.some(same)) return true
+  return queryClient.getQueryData<Order[]>(orderKeys.pending)?.some((order) => order.lines.some(same)) ?? false
 }
 
 /** The attempt of this user still waiting for a definitive answer, or null. */
@@ -97,6 +117,11 @@ export function useCreateOrder() {
     onSuccess: (order) => {
       save(null, null)
       queryClient.setQueryData(orderKeys.detail(order.id), order)
+      // Known at once, so the attempt handing over to the pending list leaves no gap
+      // in which the order's own reservation looks like a sell-out.
+      if (order.status === 'pending') {
+        queryClient.setQueryData<Order[]>(orderKeys.pending, (list) => [order, ...(list ?? []).filter((o) => o.id !== order.id)])
+      }
       void queryClient.invalidateQueries({ queryKey: orderKeys.pending, exact: true })
     },
     // A transient failure (timeout, connection, 5xx) says nothing about the

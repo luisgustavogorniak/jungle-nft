@@ -10,6 +10,7 @@ export default defineConfig([
     'dist',
     'playwright-report',
     'test-results',
+    'tmp',
     'public/mockServiceWorker.js',
     'src/routeTree.gen.ts',
   ]),

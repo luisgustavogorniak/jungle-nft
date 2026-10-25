@@ -14,7 +14,7 @@ import {
 import { setCoupon } from '@/features/cart/coupon'
 import { cartKeys } from '@/features/cart/queries'
 import { catalogKeys } from '@/features/catalog/queries'
-import { orderKeys } from '@/features/orders/queries'
+import { isHeldByOwnOrder, orderKeys } from '@/features/orders/queries'
 import { compareEth, formatEth } from '@/lib/eth'
 import { announce } from './announcements'
 
@@ -91,10 +91,11 @@ function patchNft(nft: Nft, event: NftUpdatedEvent): Nft {
 }
 
 /** What changed for a cart line, worded for the user, or null when it does not matter. */
-function describeCartChange(item: CartItem, event: NftUpdatedEvent): string | null {
+function describeCartChange(item: CartItem, event: NftUpdatedEvent, ownReservation: boolean): string | null {
   const name = `${item.name} (${item.editionLabel})`
   const available = event.data.editions.find((edition) => edition.id === item.editionId)?.available ?? item.available
-  if (available < item.quantity) {
+  // The user's own pending order holds these units: that is not a sell-out.
+  if (available < item.quantity && !ownReservation) {
     return available === 0 ? `${name} esgotou.` : `Restam apenas ${available} unidade(s) de ${name}.`
   }
   if (compareEth(item.unitPrice, event.data.price) !== 0) {
@@ -121,7 +122,9 @@ export function applyNftUpdated(queryClient: QueryClient, payload: unknown) {
   const lines = cart?.items.filter((item) => item.nftId === event.resourceId) ?? []
   if (!cart || lines.length === 0) return
 
-  const changes = lines.map((item) => describeCartChange(item, event)).filter((change) => change !== null)
+  const changes = lines
+    .map((item) => describeCartChange(item, event, isHeldByOwnOrder(queryClient, item.nftId, item.editionId)))
+    .filter((change) => change !== null)
   if (changes.length > 0) announce(`Seu carrinho foi atualizado. ${changes.join(' ')} O resumo foi recalculado.`)
 
   queryClient.setQueryData<Cart>(cartKeys.cart, {

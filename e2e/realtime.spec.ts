@@ -36,6 +36,21 @@ async function cartWithEmeraldApe(page: Page, scenario = 'default') {
 
 const notice = (page: Page) => page.getByRole('status', { name: 'Atualizações em tempo real' })
 
+/**
+ * The 1/1 edition has a single unit: the user's own order reserves the last one, so the
+ * `nft.updated` of that reservation says "0 available" for a line the user is buying.
+ */
+async function reviewLastUnit(page: Page, scenario: string) {
+  await openFresh(page, `/nfts/${NFT_ID}`, scenario)
+  await expect(page.getByRole('radio', { name: '1/1 (1 disponível)' })).toBeChecked()
+  await page.getByRole('button', { name: 'Adicionar ao carrinho' }).click()
+  await expect(page.getByText('Emerald Ape #042 adicionado ao carrinho')).toBeVisible()
+  await page.goto('/checkout')
+  await login(page, users.nova)
+  await expect(page).toHaveURL('/checkout')
+  await connectAndReview(page)
+}
+
 test.describe('realtime', () => {
   test('a price change of a cart item is announced and the summary is updated', async ({ page }) => {
     await cartWithEmeraldApe(page)
@@ -45,6 +60,26 @@ test.describe('realtime', () => {
     await expect(notice(page)).toContainText('O preço de Emerald Ape #042 (1/50) mudou de 1.19 ETH para 1.50 ETH')
     await expect(page.getByTestId('summary-subtotal')).toHaveText('3.00 ETH')
     await expect(page.getByTestId('summary-total')).toHaveText('3.016 ETH')
+  })
+
+  test('the reservation of the own pending order is not announced as a sell-out', async ({ page }) => {
+    await reviewLastUnit(page, 'slow-payment')
+    await page.getByRole('button', { name: 'Confirmar compra' }).click()
+    await expect(page).toHaveURL(/\/orders\/order-/)
+
+    await expectEventReceived(page, 'nft.updated', NFT_ID)
+    await expect(notice(page)).toHaveText('')
+  })
+
+  test('the reservation of an attempt without an answer is not announced as a sell-out', async ({ page }) => {
+    test.slow() // the client gives up after its 10s timeout
+    await reviewLastUnit(page, 'order-timeout')
+    await page.getByRole('button', { name: 'Confirmar compra' }).click()
+
+    // The order exists and reserved the unit while its response never arrives.
+    await expectEventReceived(page, 'nft.updated', NFT_ID)
+    await expect(page.getByRole('region', { name: 'Pedido em andamento' })).toBeVisible({ timeout: 15_000 })
+    await expect(notice(page)).toHaveText('')
   })
 
   test('a sold out edition is announced in the cart', async ({ page }) => {
