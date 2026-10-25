@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate, useRouter } from '@tanstack/react-router'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -31,6 +31,9 @@ export function AuthScreen({ mode, search }: { mode: Mode; search: z.infer<typeo
   const router = useRouter()
   const navigate = useNavigate()
   const firstField = useRef<HTMLDivElement>(null)
+  // The control that opened the modal (e.g. "Entrar" in the header) is still focused on the first
+  // render. The modal opens from the URL, so Radix has no trigger to send the focus back to.
+  const [opener] = useState(() => document.activeElement as HTMLElement | null)
   const onSuccess = () => router.history.push(safeRedirect(search.redirect))
   const expired = search.reason === 'expired' && (
     <p role="status" className="text-sm">
@@ -59,7 +62,7 @@ export function AuthScreen({ mode, search }: { mode: Mode; search: z.infer<typeo
   return (
     <>
       <HomePage />
-      <Dialog open onOpenChange={(open) => !open && void navigate({ to: '/' })}>
+      <Dialog open onOpenChange={(open) => !open && void navigate({ to: '/' }).then(() => opener?.isConnected && opener.focus())}>
         <DialogContent
           // Radix hides the rest of the page from assistive tech but does not set aria-modal.
           aria-modal="true"
@@ -69,6 +72,8 @@ export function AuthScreen({ mode, search }: { mode: Mode; search: z.infer<typeo
             event.preventDefault()
             firstField.current?.querySelector('input')?.focus()
           }}
+          // Closing moves the focus back to the opener (above), after the navigation.
+          onCloseAutoFocus={(event) => event.preventDefault()}
         >
           <DialogTitle className="sr-only">{copy[mode].title}</DialogTitle>
           <Tabs

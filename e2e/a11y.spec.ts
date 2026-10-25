@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { checkoutAsNova, openFresh, selectEdition } from './support/mock'
+import { checkoutAsNova, openFresh, selectEdition, updateNft } from './support/mock'
 
 const isMobile = (page: Page) => (page.viewportSize()?.width ?? 1440) < 768
 
@@ -135,5 +135,49 @@ test.describe('keyboard, focus and forms', () => {
     await checkoutAsNova(page)
     await page.getByRole('button', { name: 'Conectar carteira' }).click()
     await expect(page.getByRole('button', { name: 'Revisar pedido' })).toBeFocused()
+  })
+
+  test('closing the login modal returns the focus to the control that opened it', async ({ page }) => {
+    test.skip(isMobile(page), 'login is a page on mobile, not a modal')
+    await openFresh(page, '/')
+    const opener = page.getByRole('banner').getByRole('link', { name: 'Entrar' })
+    const dialog = page.getByRole('dialog', { name: 'Entrar' })
+
+    await opener.focus()
+    await page.keyboard.press('Enter')
+    await expect(dialog).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page).toHaveURL('/')
+    await expect(opener).toBeFocused()
+
+    await opener.focus()
+    await page.keyboard.press('Enter')
+    await dialog.getByRole('button', { name: 'Fechar', exact: true }).click()
+    await expect(dialog).toBeHidden()
+    await expect(opener).toBeFocused()
+  })
+
+  test('the quantity stepper says why "+" is disabled at the limit', async ({ page }) => {
+    await openFresh(page, '/nfts/emerald-ape-042')
+    await expect(page.getByRole('heading', { name: 'Emerald Ape #042' })).toBeVisible()
+    await updateNft(page, 'emerald-ape-042', { editions: [{ id: '1-50', available: 2 }] })
+    await selectEdition(page, '1/50')
+    const stepper = page.getByRole('group', { name: 'Quantidade' })
+    await expect(stepper.getByText('Máximo disponível')).toHaveCount(0)
+
+    await stepper.getByRole('button', { name: 'Aumentar quantidade' }).click()
+    await expect(stepper.getByRole('button', { name: 'Aumentar quantidade' })).toBeDisabled()
+    await expect(stepper).toHaveAccessibleDescription('Máximo disponível: 2')
+  })
+
+  test('each cart card has a single link to its NFT, with a name', async ({ page }) => {
+    await openFresh(page, '/nfts/emerald-ape-042')
+    await selectEdition(page, '1/50')
+    await page.getByRole('button', { name: 'Adicionar ao carrinho' }).click()
+    await expect(page.getByText('Emerald Ape #042 adicionado ao carrinho')).toBeVisible()
+    await page.getByRole('button', { name: 'Ver carrinho' }).click()
+    const row = page.getByRole('listitem', { name: /Emerald Ape #042/ })
+    await expect(row.locator('a')).toHaveCount(1)
+    await expect(row.getByRole('link', { name: /Emerald Ape #042/ })).toBeVisible()
   })
 })

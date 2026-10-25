@@ -64,9 +64,8 @@ function MobileRow({ item }: { item: CartItem }) {
   const line = useLineActions(item)
   return (
     <div className="grid grid-cols-[100px_minmax(0,1fr)] overflow-hidden rounded-[14px] bg-card shadow-card-y">
-      <Link to="/nfts/$nftId" params={{ nftId: item.nftId }} aria-hidden="true" tabIndex={-1}>
-        <img src={item.image} alt="" width={100} height={100} className="size-[100px] object-cover" />
-      </Link>
+      {/* Decorative: the name below is the only link of the card. */}
+      <img src={item.image} alt="" width={100} height={100} className="size-[100px] object-cover" />
       <div className="grid min-w-0 content-between gap-1 py-2 pr-2 pl-3">
         <div className="flex items-start justify-between gap-1">
           <div className="min-w-0">

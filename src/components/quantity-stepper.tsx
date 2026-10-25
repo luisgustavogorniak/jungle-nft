@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { cn } from 'cn'
 import { Button } from '@/components/ui/button'
@@ -19,14 +20,24 @@ type Props = {
   className?: string
 }
 
-/** Minus is disabled at 1 and plus at the limit, so the buttons never fail silently. */
+/**
+ * Minus is disabled at 1 and plus at the limit, so the buttons never fail silently. At the
+ * limit, "Máximo disponível: N" says why, tied to the group and to the plus button.
+ */
 export function QuantityStepper({ value, max, onChange, label = 'Quantidade', disabled = false, caption = false, compact = false, className }: Props) {
   const button = cn(
     'size-6 rounded-full bg-primary text-primary-foreground shadow-[0_4px_12px_-2px_rgb(20_13_10/0.15)] hover:bg-primary/85 disabled:bg-secondary disabled:text-[#55321f] disabled:opacity-100 disabled:shadow-none [&_svg]:size-4',
     compact ? 'md:size-5 md:[&_svg]:size-3' : 'md:size-8 md:[&_svg]:size-5',
   )
+  const hintId = useId()
+  const atMax = !disabled && value >= max
   return (
-    <div role="group" aria-label={label} className={cn('flex items-center gap-3 md:gap-4', className)}>
+    <div
+      role="group"
+      aria-label={label}
+      aria-describedby={atMax ? hintId : undefined}
+      className={cn('flex flex-wrap items-center gap-x-3 gap-y-1 md:gap-x-4', className)}
+    >
       {caption && (
         <span className="text-sm font-bold md:hidden" aria-hidden="true">
           Qtd.
@@ -38,9 +49,22 @@ export function QuantityStepper({ value, max, onChange, label = 'Quantidade', di
       <output aria-live="polite" aria-label="Quantidade selecionada" className="min-w-4 text-center font-bold">
         {value}
       </output>
-      <Button type="button" size="icon-xs" className={button} aria-label="Aumentar quantidade" disabled={disabled || value >= max} onClick={() => onChange(value + 1)}>
+      <Button
+        type="button"
+        size="icon-xs"
+        className={button}
+        aria-label="Aumentar quantidade"
+        aria-describedby={atMax ? hintId : undefined}
+        disabled={disabled || value >= max}
+        onClick={() => onChange(value + 1)}
+      >
         <Plus />
       </Button>
+      {atMax && (
+        <p id={hintId} className="basis-full text-xs text-copy">
+          Máximo disponível: {max}
+        </p>
+      )}
     </div>
   )
 }

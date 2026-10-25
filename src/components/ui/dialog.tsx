@@ -71,10 +71,9 @@ function DialogContent({
               variant="ghost"
               className="absolute top-2 right-2 text-primary"
               size="icon-sm"
+              aria-label="Fechar"
             >
-              <XIcon
-              />
-              <span className="sr-only">Fechar</span>
+              <XIcon aria-hidden="true" />
             </Button>
           </DialogPrimitive.Close>
         )}

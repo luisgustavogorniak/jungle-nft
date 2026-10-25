@@ -257,6 +257,9 @@ O app nunca importa de `src/mocks/` além da chamada `startMocking()` em `main.t
 
 - Navegação por teclado em todos os fluxos; o primeiro `Tab` leva ao link "Pular para o conteúdo"; todo controle focável desenha um indicador de foco (o painel de abas do catálogo, que recebia foco sem anel, foi corrigido).
 - Diálogos e drawers prendem o foco, fecham com Esc e devolvem o foco ao gatilho. O modal do pedido leva o foco ao título.
+- O modal de login e cadastro abre pela URL, então o Radix não tem gatilho para onde devolver o foco. O `AuthScreen` guarda o elemento focado no primeiro render (o "Entrar" do header) e o foca de novo depois da navegação de fechamento. O × dos diálogos tem `aria-label="Fechar"`.
+- Uma linha do carrinho tem um só link para o NFT (o nome); a imagem do card mobile é decorativa. Os cards do catálogo já eram um link único.
+- No limite do stepper, o "+" desabilita e aparece "Máximo disponível: N", ligado ao grupo e ao botão por `aria-describedby`.
 - Campos com `label`, `aria-invalid` e erro ligado por `aria-describedby`; o primeiro campo com erro recebe o foco.
 - No checkout, o botão principal fica desabilitado enquanto a carteira conecta, e um botão desabilitado perde o foco para o `body`. Quando a conexão termina, o foco volta a esse botão, que já mostra o próximo passo ("Revisar pedido"). Na revisão, o foco vai para o título "Revise seu pedido".
 - Avisos de tempo real e de mutations em regiões `aria-live` sempre montadas.
