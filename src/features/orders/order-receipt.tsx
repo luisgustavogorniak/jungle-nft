@@ -10,12 +10,20 @@ import { formatEth } from '@/lib/eth'
 /** "THANK YOU" envelope of the confirmation modal (D5). */
 function ThankYouIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 66 80" className="h-20 w-[66px] text-primary" fill="none" stroke="currentColor" strokeWidth="2.5">
-      <path d="M2 34v42h62V34" />
-      <path d="M2 34l31 24 31-24" />
-      <path d="M2 76l24-22M64 76L40 54" />
-      <rect x="8" y="6" width="50" height="36" rx="2" className="fill-card" />
-      <path d="M28 6l5-4 5 4" />
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 66 80"
+      className="h-20 w-[66px] text-primary"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {/* One continuous outline for the envelope and rounded joins, so no stroke ends poke out. */}
+      <path d="M64 34V76H2V34L33 58L64 34" />
+      <path d="M2 76L25 52M64 76L41 52" />
+      <path d="M8 6H28L33 2L38 6H58V42H8Z" className="fill-card" />
       <text x="33" y="22" textAnchor="middle" fontSize="10" fontWeight="700" fill="currentColor" stroke="none">
         THANK
       </text>
