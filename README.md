@@ -161,7 +161,7 @@ O Playwright faz o build do app e o serve com `vite preview` na porta 4173, o me
 
 **Zero skipped.** A confirmação do pedido é um modal no desktop e uma página no mobile, então o teste confere o formato de cada projeto em vez de pular um deles.
 
-**Instabilidade conhecida.** `retries: 1`: um teste que só passa na segunda tentativa aparece como `flaky` no resumo. Um teste de perfil falhou uma vez e nunca mais ([detalhes](./ARCHITECTURE.md#13-testes)).
+**Instabilidade conhecida.** `retries: 1`: um teste que só passa na segunda tentativa aparece como `flaky` no resumo. Um teste de perfil que falhava às vezes foi corrigido: digitava no campo do modal de login que ainda estava saindo da tela ([detalhes](./ARCHITECTURE.md#13-testes)).
 
 **Relatório e traces.** Toda execução grava um relatório HTML em `playwright-report/` (`npm run test:e2e:report` o abre). Um teste que falha mantém o trace, um screenshot e o contexto de erro em `test-results/<teste>/`; abra um trace com `npx playwright show-trace test-results/<teste>/trace.zip` ou pelo relatório.
 

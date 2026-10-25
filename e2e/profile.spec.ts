@@ -30,6 +30,8 @@ test.describe('profile', () => {
 
   test('shows validation and API errors on the fields', async ({ page }) => {
     await openAs(page, users.nova, '/profile')
+    // The form shows the loaded profile before anything is typed into it.
+    await expect(page.getByLabel('E-mail')).toHaveValue('nova@kurio.test')
 
     // Client validation.
     await page.getByLabel('E-mail').fill('not-an-email')
