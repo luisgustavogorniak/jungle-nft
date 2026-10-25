@@ -22,7 +22,7 @@ type Props = {
 /** Minus is disabled at 1 and plus at the limit, so the buttons never fail silently. */
 export function QuantityStepper({ value, max, onChange, label = 'Quantidade', disabled = false, caption = false, compact = false, className }: Props) {
   const button = cn(
-    'size-6 rounded-full bg-secondary text-foreground md:bg-primary md:text-primary-foreground md:shadow-card [&_svg]:size-4',
+    'size-6 rounded-full bg-primary text-primary-foreground shadow-card hover:bg-primary/85 disabled:bg-secondary disabled:text-[#55321f] disabled:opacity-100 disabled:shadow-none [&_svg]:size-4',
     compact ? 'md:size-5 md:[&_svg]:size-3' : 'md:size-8',
   )
   return (

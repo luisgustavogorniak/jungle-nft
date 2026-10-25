@@ -109,7 +109,7 @@ function EditionChips({
             <label
               key={edition.id}
               className={cn(
-                'relative cursor-pointer rounded-full border border-transparent px-3 py-1 text-sm text-copy has-[:checked]:border-primary has-[:checked]:font-medium has-[:checked]:text-highlight has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring',
+                'relative cursor-pointer rounded-full border border-border px-3 py-1 text-[13px] text-copy md:border-transparent md:text-sm has-[:checked]:border-primary has-[:checked]:font-medium has-[:checked]:text-highlight has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring',
                 soldOut && 'cursor-not-allowed line-through opacity-50',
               )}
             >
@@ -172,7 +172,7 @@ function NftDetail({ nft }: { nft: Nft }) {
   const help = selected ? undefined : 'Todas as edições estão esgotadas. Volte mais tarde ou veja outros NFTs.'
 
   return (
-    <main className="pb-44 md:pb-0">
+    <main>
       <Container className="grid gap-6 md:py-6">
         <nav aria-label="Você está em" className="hidden text-[15px] font-bold md:block">
           <Link to="/" className="hover:text-highlight">
@@ -204,11 +204,11 @@ function NftDetail({ nft }: { nft: Nft }) {
             ))}
           </ul>
 
-          <div className="relative">
-            <div className="mt-4 md:mt-0 md:rounded-md md:bg-card md:p-4">
+          <div className="relative max-md:px-1 max-md:pt-[66px]">
+            <div className="md:rounded-md md:bg-card md:p-4">
               <img src={nft.image} alt={nft.name} width={404} height={404} fetchPriority="high" className="aspect-[361/356] w-full rounded-3xl object-cover md:aspect-square" />
             </div>
-            <div className="absolute inset-x-0 top-0 flex justify-between md:hidden">
+            <div className="absolute inset-x-1 top-[23px] flex justify-between md:hidden">
               <Button
                 type="button"
                 variant="circle"
@@ -222,7 +222,7 @@ function NftDetail({ nft }: { nft: Nft }) {
             </div>
           </div>
 
-          <div className="relative z-0 -mx-6 -mt-10 grid content-start gap-3 rounded-t-[31px] bg-card px-6 pt-8 md:m-0 md:gap-4 md:rounded-none md:bg-transparent md:p-0">
+          <div className="relative z-0 -mx-6 -mt-[30px] grid content-start gap-3 rounded-t-[31px] bg-card px-6 pt-8 pb-[calc(11rem+env(safe-area-inset-bottom))] md:m-0 md:gap-4 md:rounded-none md:bg-transparent md:p-0 md:pb-0">
             <div className="flex items-start justify-between gap-3 md:block">
               <h1 className="text-xl font-bold md:text-[28px]">{nft.name}</h1>
               <p className="flex shrink-0 items-center gap-1 rounded-full border border-primary px-2 py-0.5 text-sm font-bold md:hidden">
@@ -297,7 +297,7 @@ function NftDetail({ nft }: { nft: Nft }) {
               )}
             </div>
 
-            <dl className="grid gap-1 text-[15px] text-copy">
+            <dl className="grid gap-3.5 text-[15px] text-muted-foreground max-md:mt-1 md:gap-1">
               <div>
                 <dt className="inline">ID do token: </dt>
                 <dd className="inline">{nft.tokenId}</dd>
