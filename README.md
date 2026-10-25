@@ -159,7 +159,7 @@ O Playwright faz o build do app e o serve com `vite preview` na porta 4173, o me
 
 **Estado isolado.** Cada teste abre sua primeira página com `openFresh` (`?mock-reset&scenario=…`), que restaura os dados iniciais e escolhe o cenário, e cada teste ganha um contexto de navegador novo (`localStorage` vazio). Os testes sensíveis a tempo usam `page.clock`.
 
-**Zero skipped.** A confirmação do pedido é um modal no desktop e uma página no mobile, então o teste confere o formato de cada projeto em vez de pular um deles.
+**Zero skipped.** A confirmação do pedido é um modal no desktop e uma página no mobile, então o teste confere o formato de cada projeto em vez de pular um deles. Testes que só fazem sentido em um projeto ficam em `*.desktop.spec.ts` ou `*.mobile.spec.ts`, e o `testIgnore` de cada projeto no `playwright.config.ts` os exclui do outro, sem `test.skip`.
 
 **Instabilidade conhecida.** `retries: 1`: um teste que só passa na segunda tentativa aparece como `flaky` no resumo. Um teste de perfil que falhava às vezes foi corrigido: digitava no campo do modal de login que ainda estava saindo da tela ([detalhes](./ARCHITECTURE.md#13-testes)).
 

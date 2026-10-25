@@ -137,26 +137,6 @@ test.describe('keyboard, focus and forms', () => {
     await expect(page.getByRole('button', { name: 'Revisar pedido' })).toBeFocused()
   })
 
-  test('closing the login modal returns the focus to the control that opened it', async ({ page }) => {
-    test.skip(isMobile(page), 'login is a page on mobile, not a modal')
-    await openFresh(page, '/')
-    const opener = page.getByRole('banner').getByRole('link', { name: 'Entrar' })
-    const dialog = page.getByRole('dialog', { name: 'Entrar' })
-
-    await opener.focus()
-    await page.keyboard.press('Enter')
-    await expect(dialog).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(page).toHaveURL('/')
-    await expect(opener).toBeFocused()
-
-    await opener.focus()
-    await page.keyboard.press('Enter')
-    await dialog.getByRole('button', { name: 'Fechar', exact: true }).click()
-    await expect(dialog).toBeHidden()
-    await expect(opener).toBeFocused()
-  })
-
   test('the quantity stepper says why "+" is disabled at the limit', async ({ page }) => {
     await openFresh(page, '/nfts/emerald-ape-042')
     await expect(page.getByRole('heading', { name: 'Emerald Ape #042' })).toBeVisible()

@@ -28,8 +28,9 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    // `*.desktop.spec.ts` and `*.mobile.spec.ts` run only in their project, so nothing is skipped at runtime.
+    { name: 'desktop', testIgnore: /\.mobile\.spec\.ts$/, use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
+    { name: 'mobile', testIgnore: /\.desktop\.spec\.ts$/, use: { ...devices['Pixel 7'] } },
   ],
   // Tests run against the optimized build with mocks enabled, the same artifact we deploy.
   webServer: {
