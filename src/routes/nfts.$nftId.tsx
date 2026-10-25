@@ -141,8 +141,12 @@ function NftDetail({ nft }: { nft: Nft }) {
   const [quantity, setQuantity] = useState(1)
   const [thumb, setThumb] = useState(0)
 
-  // The first edition with stock is preselected; the user's choice wins while it still has stock.
-  const firstAvailable = nft.editions.find((edition) => edition.available > 0) ?? null
+  // 1/50 (the edition the layout shows selected) is preselected while it has stock, otherwise the first
+  // edition with stock; the user's choice wins while it still has stock.
+  const firstAvailable =
+    nft.editions.find((edition) => edition.id === '1-50' && edition.available > 0) ??
+    nft.editions.find((edition) => edition.available > 0) ??
+    null
   const chosenEdition = nft.editions.find((edition) => edition.id === chosen && edition.available > 0)
   const selected = chosenEdition ?? firstAvailable
   const max = selected ? Math.min(selected.available, MAX_QUANTITY) : 1

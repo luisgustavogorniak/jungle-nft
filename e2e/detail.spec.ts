@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { login, openFresh, selectEdition, users } from './support/mock'
+import { login, openFresh, selectEdition, updateNft, users } from './support/mock'
 
 const isMobile = (page: Page) => (page.viewportSize()?.width ?? 1440) < 768
 
@@ -13,16 +13,23 @@ async function expectFavorite(page: Page, on: boolean) {
 }
 
 test.describe('detail', () => {
-  test('preselects the first edition in stock and limits the quantity to it', async ({ page }) => {
+  test('preselects 1/50, as in the layout, and limits the quantity to the edition stock', async ({ page }) => {
     await openFresh(page, '/nfts/emerald-ape-042')
-    // Emerald Ape has the 1/1 edition with a single unit: it is chosen, and "+" stops at 1.
-    await expect(page.getByRole('radio', { name: '1/1 (1 disponível)' })).toBeChecked()
+    await expect(page.getByRole('radio', { name: /^1[/]50 / })).toBeChecked()
     if (!isMobile(page)) {
       await expect(page.getByRole('navigation', { name: 'Você está em' })).toContainText('Mercado / Emerald Ape #042')
     }
-    await expect(page.getByRole('button', { name: 'Aumentar quantidade' })).toBeDisabled()
-    await selectEdition(page, '1/50')
     await expect(page.getByRole('button', { name: 'Aumentar quantidade' })).toBeEnabled()
+    // Emerald Ape has the 1/1 edition with a single unit: "+" stops at 1.
+    await selectEdition(page, '1/1')
+    await expect(page.getByRole('button', { name: 'Aumentar quantidade' })).toBeDisabled()
+  })
+
+  test('falls back to the first edition in stock when 1/50 sells out', async ({ page }) => {
+    await openFresh(page, '/nfts/emerald-ape-042')
+    await expect(page.getByRole('radio', { name: /^1[/]50 / })).toBeChecked()
+    await updateNft(page, 'emerald-ape-042', { editions: [{ id: '1-50', available: 0 }] })
+    await expect(page.getByRole('radio', { name: '1/1 (1 disponível)' })).toBeChecked()
   })
 
   test('shows the main purchase actions enabled without extra steps', async ({ page }) => {

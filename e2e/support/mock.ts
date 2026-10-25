@@ -101,7 +101,8 @@ export async function withFilters(page: Page, actions: (scope: Awaited<ReturnTyp
 
 /** Edition chips hide their radio input; the visible target is the label. */
 export async function selectEdition(page: Page, label: string) {
-  await page.locator('label', { hasText: label }).click()
+  // "1/1" must not match "1/10".
+  await page.locator('label', { hasText: new RegExp(label + '(?!\\d)') }).click()
   await expect(page.getByRole('radio', { name: new RegExp('^' + label.replace('/', '[/]') + ' ') })).toBeChecked()
 }
 

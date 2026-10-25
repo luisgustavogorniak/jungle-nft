@@ -41,8 +41,9 @@ function DesktopRow({ item }: { item: CartItem }) {
         <img src={item.image} alt="" width={70} height={70} className="size-[70px] shrink-0 object-cover" />
         <span className="min-w-0">
           <span className="block truncate font-bold">{item.name}</span>
-          <span className="block text-sm text-copy">
-            ID do token: {item.tokenId} · Edição: {item.editionLabel}
+          <span className="flex flex-wrap gap-x-3 text-sm text-copy">
+            <span>ID do token: {item.tokenId}</span>
+            <span>Edição: {item.editionLabel}</span>
           </span>
         </span>
       </Link>

@@ -42,7 +42,7 @@ const notice = (page: Page) => page.getByRole('status', { name: 'Atualizações 
  */
 async function reviewLastUnit(page: Page, scenario: string) {
   await openFresh(page, `/nfts/${NFT_ID}`, scenario)
-  await expect(page.getByRole('radio', { name: '1/1 (1 disponível)' })).toBeChecked()
+  await selectEdition(page, '1/1')
   await page.getByRole('button', { name: 'Adicionar ao carrinho' }).click()
   await expect(page.getByText('Emerald Ape #042 adicionado ao carrinho')).toBeVisible()
   await page.goto('/checkout')
