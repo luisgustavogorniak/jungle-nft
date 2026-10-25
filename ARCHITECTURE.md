@@ -319,14 +319,14 @@ CLS no desktop, medido com um probe de `layout-shift` antes e depois: início 0,
 | Filtros como lista simples | Checkboxes combináveis | O enunciado exige filtros combináveis |
 | Faixa de preço só com slider | Slider + campos mín/máx + Aplicar | O slider é impreciso no mobile (comentário) |
 | Scroll infinito no mobile | Paginação numerada | A página vive na URL |
-| FAB central de scan na tab bar | Omitido | Sem ação definida (comentário) |
+| FAB central de scan na tab bar | FAB "Explorar" (`aria-label`): leva à home e foca a busca | O frame não define a ação (comentário); o enunciado pede busca |
 | Drawer de filtros mobile não desenhado | Sheet com o mesmo painel | Necessário no mobile |
 | Medalhões W/C/D | Ícones | As letras não têm significado (comentário) |
-| Ícones de marcas sociais | Chips de texto (FB, IG…) | O lucide v1 removeu ícones de marcas |
+| Ícones de marcas sociais | SVG inline próprios (`brand-icons.tsx`), `aria-hidden`; logos de Google e Facebook nas cores do `design.md` | O lucide v1 removeu ícones de marcas |
 | Preços com vírgula no rótulo da faixa | Ponto em todo lugar | Consistente com os demais valores em ETH |
 | Tablet não desenhado | Header cabe em 768; filtros viram drawer abaixo de 1280; 3 colunas | Breakpoints sugeridos na especificação |
 | Páginas editoriais, newsletter, links de ajuda do footer | Aviso honesto "não faz parte da demonstração" | Ações fora do escopo não podem parecer funcionais |
-| Detalhe: galeria com várias imagens | Repete a única arte da API; sem zoom nem "Compartilhar" | A API tem uma arte por NFT |
+| Detalhe: galeria com várias imagens | Repete a única arte da API; sem o ícone de zoom | A API tem uma arte por NFT; um botão de zoom sem função enganaria |
 | Detalhe: aba Avaliações não desenhada | Aviso na aba | Fora do escopo |
 | Detalhe: só o botão COMPRAR no desktop | Também o botão de carrinho | Adicionar sem comprar é um fluxo obrigatório |
 | Carrinho mobile: lixeira sobrepõe o "+" | Lixeira na linha do nome | Problema apontado nos comentários |
@@ -374,3 +374,12 @@ Os ajustes de acessibilidade em relação ao layout (foco visível em todo contr
 - **Regressão visual** validada apenas no Windows 11 (seção 13).
 - **A altura total do detalhe muda** quando os dados chegam, porque o conteúdo abaixo da dobra só aparece depois; a imagem e o topo da página não se mexem.
 - Perfis, carteiras e pagamentos são simulados; integrações reais (blockchain, extensões de carteira, gateways) estão fora do escopo do desafio.
+| Login e cadastro: labels visíveis | Labels `sr-only`, associados aos inputs; só os placeholders aparecem | O frame mostra só placeholders; o enunciado e a acessibilidade exigem label associado |
+| Login e cadastro mobile com tab bar | Sem tab bar | O frame não a desenha |
+| Detalhe e carrinho mobile: botões do frame sem estado desabilitado visível | "−" com quantidade 1 em círculo `surface-raised` com ícone `border-soft` (único estilo de stepper, igual no desktop) | Comentário pede steppers iguais e desabilitado por acessibilidade |
+| Carrinho mobile: sheet do resumo | `position: sticky` na base, com a lista rolando por trás | Evita medir a altura do sheet para reservar espaço; no fim da rolagem a lista nunca fica escondida |
+| Pagamento desktop: título e campos do frame | Rótulos 15 regular com asterisco grande; selects nativos com chevron do layout | Select nativo mantém teclado e leitor de tela |
+| Footer: contato com ícones | Texto puro, como no frame | Fidelidade |
+| Footer: faixas em largura total | Faixas dentro do container de 1200px, fundo da página nas laterais; copyright fora das faixas | Como no frame (conferido em 1440 e 1920) |
+| Home desktop: dots do hero ao lado da imagem | Mantidos sob a imagem | Comentário pede afastar o seletor da imagem |
+| Home desktop: grade de blog com cards de 268 à esquerda | 4 colunas ocupando os 1200px | Comentário aponta o desalinhamento |
