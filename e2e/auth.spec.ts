@@ -30,6 +30,33 @@ test.describe('account and session', () => {
     await expect(page).toHaveURL(/\/login/)
   })
 
+  test('login and register are a modal over the home on desktop and a page on mobile', async ({ page }) => {
+    const isDesktop = (page.viewportSize()?.width ?? 0) >= 768
+    await openFresh(page, '/login')
+    const dialog = page.getByRole('dialog', { name: 'Entrar' })
+
+    if (!isDesktop) {
+      await expect(page.getByRole('dialog')).toHaveCount(0)
+      await expect(page.getByRole('heading', { name: 'Entrar', level: 1 })).toBeVisible()
+      return
+    }
+    await expect(dialog).toHaveAttribute('aria-modal', 'true')
+    // The home stays rendered behind the modal (hidden from assistive tech while it is open).
+    await expect(page.locator('main').getByText(/Seja dono do futuro/i)).toBeAttached()
+    await expect(dialog.getByRole('tab', { name: 'Entrar' })).toHaveAttribute('aria-selected', 'true')
+    await expect(dialog.getByLabel('E-mail')).toBeFocused()
+
+    await dialog.getByRole('tab', { name: 'Criar conta' }).click()
+    await expect(page).toHaveURL(/\/register/)
+    await expect(page.getByRole('dialog', { name: 'Criar perfil de colecionador' })).toBeVisible()
+    await page.reload()
+    await expect(page.getByRole('dialog', { name: 'Criar perfil de colecionador' })).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(page).toHaveURL('/')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+  })
+
   test('forgot password and social sign-in answer that they are outside the demo', async ({ page }) => {
     await openFresh(page, '/login')
     for (const name of ['Esqueceu a senha?', 'Continuar com Google', 'Continuar com Facebook']) {
@@ -119,7 +146,9 @@ test.describe('account and session', () => {
 
     await expect(page).toHaveURL(/\/login\?.*redirect=%2Fprofile.*reason=expired/)
     await expect(page.getByRole('status').filter({ hasText: 'Sua sessão expirou' })).toBeVisible()
-    await expectSignedOut(page)
+    // On desktop the modal hides the header from the accessibility tree: the open login is the signed-out state.
+    if ((page.viewportSize()?.width ?? 0) >= 768) await expect(page.getByRole('dialog', { name: 'Entrar' })).toBeVisible()
+    else await expectSignedOut(page)
 
     await login(page, users.nova)
     await expect(page).toHaveURL('/profile')

@@ -9,7 +9,8 @@ import { cleanSearch, parseCatalogSearch, type CatalogSearch } from './search'
  */
 export function useCatalogSearch() {
   // The router keeps unknown or invalid params next to the validated ones: sanitize again.
-  const rawSearch = useSearch({ from: '/' })
+  // Not strict: the home also renders behind the auth modal, where the active route is /login or /register.
+  const rawSearch = useSearch({ strict: false })
   const search = useMemo(() => parseCatalogSearch(rawSearch), [rawSearch])
   const navigate = useNavigate({ from: '/' })
 

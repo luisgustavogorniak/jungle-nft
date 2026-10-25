@@ -42,7 +42,7 @@ Como cada tecnologia obrigatória participa:
 
 | Tecnologia | Onde |
 | --- | --- |
-| TanStack Router | Rotas file-based, `beforeLoad` nas rotas privadas, search params validados do catálogo, modal de pedido como rota |
+| TanStack Router | Rotas file-based, `beforeLoad` nas rotas privadas, search params validados do catálogo, modal de pedido e de login/cadastro como rota |
 | TanStack Query | Todas as consultas e mutations, cache por usuário e por parâmetros, atualização otimista, reconciliação |
 | Axios | Único caminho das chamadas REST (`src/api/http.ts`) |
 | Socket.IO | `socket.io-client` real, servidor simulado por MSW |
@@ -94,6 +94,7 @@ Como cada tecnologia obrigatória participa:
 - **Armazenamento.** O token fica em `localStorage` (`kurio.token`), então a sessão sobrevive ao refresh. Senhas existem só no corpo do login e do cadastro, e o mock guarda hashes SHA-256 com sal. Num backend real, um cookie `HttpOnly` seria preferível; com MSW não há servidor para defini-lo.
 - **Boot.** A query `['session']` chama `GET /auth/session` quando há token. Um 401 descarta o token e o usuário segue como visitante (`null`), não como erro.
 - **Duração.** 30 minutos (`SESSION_TTL_MS` no mock).
+- **Login e cadastro como modal.** No desktop, `/login` e `/register` renderizam a home com o modal por cima (`AuthScreen`), como no Figma; as abas "Entrar | Criar conta" navegam entre as duas rotas e fechar volta para `/`. No mobile são páginas. Como a rota é a fonte do estado, acesso direto, refresh e o `redirect` de retorno funcionam, e a home atrás do modal precisa ler o catálogo sem estar na rota `/` (`useSearch({ strict: false })`).
 - **Guarda de rota.** `src/routes/_authenticated.tsx` é um layout sem caminho. O `beforeLoad` usa `ensureQueryData(sessionQueryOptions)` e redireciona para `/login?redirect=<url atual>`. Login e cadastro só aceitam caminhos do mesmo domínio em `redirect` (`safeRedirect`), o que evita redirecionamento aberto.
 - **Token vencido é 401, nunca visitante.** No mock, só a ausência de token é visitante. Um token expirado ou desconhecido responde 401 em qualquer rota, inclusive carrinho e cotação. Antes, `optionalUser` convertia token vencido em visitante: o carrinho voltava vazio e o app nunca redirecionava ao login. Foi encontrado pelo teste de expiração no checkout.
 - **Expiração durante a navegação e o checkout.** Uma requisição privada respondida com 401 dispara `onSessionExpired`. O `App.tsx` encerra a sessão local, mostra um toast e navega para `/login?redirect=<url atual>&reason=expired`. Depois de entrar de novo, o usuário volta à mesma URL. O estado do servidor (carrinho, pedido pendente) não é tocado, então o checkout pode ser retomado. Se a sessão expira ao confirmar a compra, nenhum pedido é criado.
@@ -357,6 +358,7 @@ CLS no desktop, medido com um probe de `layout-shift` antes e depois: início 0,
 | Pagamento e recibo: "ID do token: #0042" | "ID do token: #0042 · Edição: 1/50" | O mesmo NFT pode estar em edições diferentes |
 | Perfil: sem texto de ajuda do avatar | "PNG, JPG ou WebP, até 5 MB." | O upload tem limites que o usuário precisa conhecer |
 | Perfil: campos de senha sem asterisco | Com asterisco | São obrigatórios para trocar a senha |
+| Login e cadastro: frames sem scrim, com raios 0 e 8 | Overlay preto a 60% e raio 8 nos dois | Comentário do `design.md`; o modal usa o mesmo shell do recibo |
 | Carteiras: "Adicionar" ao lado de "Carteira principal" | Não feito | O formulário da principal fica sempre aberto; o link não teria ação |
 | Login e cadastro: campos só com placeholder | Rótulos visíveis sobre cada campo, além dos placeholders do frame | O placeholder some ao digitar e não substitui o rótulo (acessibilidade) |
 | Login: "Esqueceu a senha?", "Continuar com Google" e "Continuar com Facebook" | Presentes, com o aviso "não faz parte da demonstração" | Recuperação de senha e login social estão fora do escopo; não podem parecer funcionais |
