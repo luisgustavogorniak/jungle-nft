@@ -61,7 +61,7 @@ function DetailSkeleton() {
     <main role="status" aria-label="Carregando NFT" className="pb-44 md:pb-0">
       <Container className="grid gap-6 md:gap-4 md:pt-[30px] md:pb-6">
         <Skeleton className="hidden h-[22px] w-40 md:block" />
-        <div className="grid gap-6 md:grid-cols-[100px_444px_1fr] md:gap-6">
+        <div className="grid gap-6 md:grid-cols-[100px_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[100px_444px_1fr] md:gap-6">
           <div className="hidden content-start gap-4 md:grid">
             {[0, 1, 2, 3].map((i) => (
               <Skeleton key={i} className="size-[100px] rounded-lg" />
@@ -187,7 +187,7 @@ function NftDetail({ nft }: { nft: Nft }) {
           <span aria-current="page">{nft.name}</span>
         </nav>
 
-        <div className="grid gap-6 md:grid-cols-[100px_444px_1fr] md:gap-6">
+        <div className="grid gap-6 md:grid-cols-[100px_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[100px_444px_1fr] md:gap-6">
           {/* Gallery. The API has a single artwork per NFT, so the thumbnails repeat it. */}
           <ul aria-label="Imagens" className="hidden content-start gap-4 md:grid">
             {[0, 1, 2, 3].map((i) => (
@@ -259,12 +259,12 @@ function NftDetail({ nft }: { nft: Nft }) {
             />
 
             {/* Mobile: fixed buy bar. Desktop: a row below the edition. */}
-            <div className="fixed inset-x-0 bottom-0 z-40 grid gap-4 rounded-t-[40px] bg-card px-6 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-card md:static md:z-auto md:flex md:items-center md:justify-between md:rounded-none md:bg-transparent md:p-0 md:shadow-none">
+            <div className="fixed inset-x-0 bottom-0 z-40 grid gap-4 rounded-t-[40px] bg-card px-6 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-card md:static md:z-auto md:flex md:flex-wrap md:items-center md:justify-between md:rounded-none md:bg-transparent md:p-0 md:shadow-none">
               <div className="flex items-center justify-between md:gap-6">
                 <QuantityStepper value={qty} max={max} caption disabled={!selected} onChange={setQuantity} />
                 <p className="text-xl font-bold text-highlight md:hidden">{formatEth(nft.price)}</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 md:flex-wrap">
                 <Button
                   type="button"
                   variant="pill"

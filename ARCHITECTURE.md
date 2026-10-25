@@ -333,7 +333,7 @@ CLS no desktop, medido com um probe de `layout-shift` antes e depois: início 0,
 | Medalhões W/C/D | Ícones | As letras não têm significado (comentário) |
 | Ícones de marcas sociais | SVG inline próprios (`brand-icons.tsx`), `aria-hidden`; logos de Google e Facebook nas cores do `design.md` | O lucide v1 removeu ícones de marcas |
 | Preços com vírgula no rótulo da faixa | Ponto em todo lugar | Consistente com os demais valores em ETH |
-| Tablet não desenhado | Header cabe em 768; filtros viram drawer abaixo de 1280; 3 colunas | Breakpoints sugeridos na especificação |
+| Tablet não desenhado | Header cabe em 768; filtros viram drawer abaixo de 1280; 3 colunas; no detalhe, imagem e informações dividem a largura (`minmax(0,1fr)`) abaixo de 1280 e os botões de compra quebram linha, em vez da imagem fixa de 444px (que estourava a página entre 768 e ~1066px) | Breakpoints sugeridos na especificação; `e2e/layout.spec.ts` mede `scrollWidth <= clientWidth` em 768 e 1024 |
 | Páginas editoriais, newsletter, links de ajuda do footer | Aviso honesto "não faz parte da demonstração" | Ações fora do escopo não podem parecer funcionais |
 | Detalhe: galeria com várias imagens | Repete a única arte da API; sem o ícone de zoom | A API tem uma arte por NFT; um botão de zoom sem função enganaria |
 | Detalhe: aba Avaliações não desenhada | Aviso na aba | Fora do escopo |
