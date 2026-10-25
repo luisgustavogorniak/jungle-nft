@@ -6,7 +6,9 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  // One retry, locally and in CI: a test passing on the second attempt is reported as "flaky",
+  // not hidden (see the README, "Instabilidade conhecida").
+  retries: 1,
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
   // One baseline per project, shared by every OS: no `-win32`/`-linux`/`-darwin` suffix, so a
   // checkout on another platform compares against the committed images instead of finding none.

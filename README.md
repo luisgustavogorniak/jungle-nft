@@ -141,6 +141,8 @@ O Playwright faz o build do app e o serve com `vite preview` na porta 4173, o me
 
 **Zero skipped.** A confirmação do pedido é um modal no desktop e uma página no mobile, então o teste confere o formato de cada projeto em vez de pular um deles.
 
+**Instabilidade conhecida.** O Playwright está com `retries: 1`. Num total de 8 execuções completas da suíte, um teste (`profile.spec.ts`, "shows validation and API errors on the fields", desktop) falhou uma vez, durante uma rodada completa com 3 workers, e não voltou a falhar: passou em 16 de 16 execuções isoladas em paralelo e em todas as rodadas completas seguintes. Investiguei o teste e o código: o formulário só monta depois de o perfil carregar e usa `defaultValues` no mount, sem `reset` que sobrescreva o que foi digitado, e as asserções esperam o resultado do save, então não encontrei uma corrida como a do teste de sessão expirada (que já foi corrigida). A causa não foi identificada; a hipótese é carga de CPU na máquina durante a rodada. O retry evita que uma falha rara derrube a suíte, mas não esconde nada: um teste que só passa na segunda tentativa aparece como **flaky** na linha de resumo (`N flaky`) e no relatório HTML. Se a linha de resumo mostrar `flaky`, abra o trace da primeira tentativa.
+
 **Relatório e traces.** Toda execução grava um relatório HTML em `playwright-report/` (`npm run test:e2e:report` o abre). Um teste que falha mantém o trace, um screenshot e o contexto de erro em `test-results/<teste>/`; abra um trace com `npx playwright show-trace test-results/<teste>/trace.zip` ou pelo relatório.
 
 ### Regressão visual
