@@ -119,6 +119,12 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
   const connection = connect.data
   const connected =
     connection?.walletId === walletId && connection.provider === provider && connection.network === network
+  // The primary button is disabled while connecting, which drops the focus to <body>.
+  // A new connection sends it back to that button, now the next step ("Revisar pedido").
+  const primaryButton = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (connection) primaryButton.current?.focus()
+  }, [connection])
 
   const [step, setStep] = useState<'edit' | 'review'>('edit')
   const reviewing = step === 'review' && connected
@@ -392,7 +398,7 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
             {formatEth(quote.data.total)}
           </span>
         </p>
-        <Button type="submit" variant="pill" size="xl" disabled={primaryDisabled}>
+        <Button ref={primaryButton} type="submit" variant="pill" size="xl" disabled={primaryDisabled}>
           {primaryLabel}
         </Button>
       </form>
@@ -465,7 +471,7 @@ export function CheckoutForm({ quote, items, wallets, user }: Props) {
         {!reviewing && <ProviderOptionsDesktop field={form.register('provider')} value={provider} />}
         {connectionStatus}
         {alerts}
-        <Button type="submit" size="lg" className="h-[45px] rounded-lg" disabled={primaryDisabled}>
+        <Button ref={primaryButton} type="submit" size="lg" className="h-[45px] rounded-lg" disabled={primaryDisabled}>
           {primaryLabel}
         </Button>
       </div>

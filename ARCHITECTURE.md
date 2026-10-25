@@ -250,6 +250,7 @@ O app nunca importa de `src/mocks/` além da chamada `startMocking()` em `main.t
 - Navegação por teclado em todos os fluxos; o primeiro `Tab` leva ao link "Pular para o conteúdo"; todo controle focável desenha um indicador de foco (o painel de abas do catálogo, que recebia foco sem anel, foi corrigido).
 - Diálogos e drawers prendem o foco, fecham com Esc e devolvem o foco ao gatilho. O modal do pedido leva o foco ao título.
 - Campos com `label`, `aria-invalid` e erro ligado por `aria-describedby`; o primeiro campo com erro recebe o foco.
+- No checkout, o botão principal fica desabilitado enquanto a carteira conecta, e um botão desabilitado perde o foco para o `body`. Quando a conexão termina, o foco volta a esse botão, que já mostra o próximo passo ("Revisar pedido"). Na revisão, o foco vai para o título "Revise seu pedido".
 - Avisos de tempo real e de mutations em regiões `aria-live` sempre montadas.
 - Skeletons com `role="status"` e nome acessível; sem animação sob `prefers-reduced-motion`.
 - Imagens relevantes com texto alternativo; decorativas com `alt=""`.

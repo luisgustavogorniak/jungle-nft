@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { openFresh, selectEdition } from './support/mock'
+import { checkoutAsNova, openFresh, selectEdition } from './support/mock'
 
 const isMobile = (page: Page) => (page.viewportSize()?.width ?? 1440) < 768
 
@@ -129,5 +129,11 @@ test.describe('keyboard, focus and forms', () => {
     await page.getByRole('button', { name: 'Criar conta' }).click()
     await expect(fields[0]).not.toHaveAttribute('aria-invalid', 'true')
     await expect(fields[1]).toBeFocused()
+  })
+
+  test('connecting the wallet moves the focus to the next step, not to the page body', async ({ page }) => {
+    await checkoutAsNova(page)
+    await page.getByRole('button', { name: 'Conectar carteira' }).click()
+    await expect(page.getByRole('button', { name: 'Revisar pedido' })).toBeFocused()
   })
 })
