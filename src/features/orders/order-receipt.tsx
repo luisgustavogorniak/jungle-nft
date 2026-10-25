@@ -121,8 +121,9 @@ export function OrderReceipt({
                 <img src={line.image} alt="" width={70} height={70} className="size-[60px] shrink-0 rounded-sm object-cover sm:size-[70px]" />
                 <span className="min-w-0">
                   <span className="block truncate font-bold">{line.name}</span>
-                  <span className="block text-xs text-copy">
-                    ID do token: {line.tokenId} · Edição: {line.editionLabel}
+                  <span className="flex flex-wrap gap-x-3 text-xs text-copy">
+                    <span>ID do token: {line.tokenId}</span>
+                    <span>Edição: {line.editionLabel}</span>
                   </span>
                 </span>
               </span>

@@ -23,8 +23,9 @@ export function CheckoutLines({ quote, items }: { quote: Quote; items: CartItem[
               {item && <img src={item.image} alt="" width={70} height={70} className="size-[70px] shrink-0 object-cover" />}
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-bold">{item?.name ?? line.nftId}</span>
-                <span className="block text-sm text-copy">
-                  ID do token: {item?.tokenId} · Edição: {item?.editionLabel}
+                <span className="flex flex-wrap gap-x-3 text-sm text-copy">
+                  <span>ID do token: {item?.tokenId}</span>
+                  <span>Edição: {item?.editionLabel}</span>
                 </span>
               </span>
               <span className="text-sm text-copy">(x {line.quantity})</span>
