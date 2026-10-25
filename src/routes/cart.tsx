@@ -96,7 +96,7 @@ function CartPage() {
                 <span>Total</span>
                 <span />
               </div>
-              <ul aria-label="Itens do carrinho" className="grid gap-3 md:gap-3">
+              <ul aria-label="Itens do carrinho" className="grid gap-3 max-md:pb-6 md:gap-3">
                 {items.map((item) => (
                   <CartRow
                     key={`${item.nftId}-${item.editionId}`}

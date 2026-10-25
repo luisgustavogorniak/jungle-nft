@@ -45,23 +45,38 @@ declare global {
  * stops an idle worker (e.g. a background tab, where MSW's keepalive timer is
  * throttled), the restarted worker has an empty list and sends every request to
  * the network, where the host answers 404/405. `MOCK_ACTIVATE` is idempotent,
- * so it is sent before every request and the request waits for the answer.
+ * so it is sent before every request and the request waits for the answer, up to
+ * MOCK_ACTIVATE_TIMEOUT_MS: a worker that never answers would otherwise hang every request.
+ * After that the request goes on unmocked and fails, with the cause in the console.
  */
+const MOCK_ACTIVATE_TIMEOUT_MS = 5_000
+
 function ensureMocking(): Promise<void> {
   const container = navigator.serviceWorker
   return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timer)
+      container.removeEventListener('message', onMessage)
+      container.removeEventListener('controllerchange', onControllerChange)
+      resolve()
+    }
+    const onMessage = (event: MessageEvent<{ type?: string }>) => {
+      if (event.data?.type === 'MOCKING_ENABLED') done()
+    }
     const activate = (controller: ServiceWorker) => {
-      const onMessage = (event: MessageEvent<{ type?: string }>) => {
-        if (event.data?.type !== 'MOCKING_ENABLED') return
-        container.removeEventListener('message', onMessage)
-        resolve()
-      }
       container.addEventListener('message', onMessage)
       controller.postMessage('MOCK_ACTIVATE')
     }
+    const onControllerChange = () => activate(container.controller!)
+    const timer = setTimeout(() => {
+      console.error(
+        `[mocks] The Service Worker did not confirm mocking within ${MOCK_ACTIVATE_TIMEOUT_MS / 1000}s; the request goes to the network and will fail. Reload the page.`,
+      )
+      done()
+    }, MOCK_ACTIVATE_TIMEOUT_MS)
     if (container.controller) activate(container.controller)
     // Not controlled yet (e.g. after a hard reload): wait for the worker to take the page.
-    else container.addEventListener('controllerchange', () => activate(container.controller!), { once: true })
+    else container.addEventListener('controllerchange', onControllerChange, { once: true })
   })
 }
 

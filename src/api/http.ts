@@ -45,16 +45,16 @@ export function isApiError(error: unknown): error is ApiError {
 
 function toApiError(error: unknown): ApiError {
   if (axios.isCancel(error)) {
-    return new ApiError({ status: null, code: 'CANCELED', message: 'Request canceled' })
+    return new ApiError({ status: null, code: 'CANCELED', message: 'Requisição cancelada' })
   }
   if (!(error instanceof AxiosError)) {
-    return new ApiError({ status: null, code: 'INTERNAL_ERROR', message: String(error) })
+    return new ApiError({ status: null, code: 'INTERNAL_ERROR', message: 'Algo deu errado. Tente novamente.' })
   }
   if (error.code === AxiosError.ECONNABORTED || error.code === AxiosError.ETIMEDOUT) {
-    return new ApiError({ status: null, code: 'TIMEOUT', message: 'The server took too long to respond' })
+    return new ApiError({ status: null, code: 'TIMEOUT', message: 'O servidor demorou para responder. Tente novamente.' })
   }
   if (!error.response) {
-    return new ApiError({ status: null, code: 'NETWORK_ERROR', message: 'Connection failed' })
+    return new ApiError({ status: null, code: 'NETWORK_ERROR', message: 'Sem conexão. Verifique sua internet e tente novamente.' })
   }
   const parsed = apiErrorBodySchema.safeParse(error.response.data)
   if (parsed.success) {
@@ -63,7 +63,8 @@ function toApiError(error: unknown): ApiError {
   return new ApiError({
     status: error.response.status,
     code: error.response.status >= 500 ? 'INTERNAL_ERROR' : 'VALIDATION_ERROR',
-    message: error.message,
+    // Axios messages are in English ("Request failed with status code 500"): the UI shows these instead.
+    message: error.response.status >= 500 ? 'Algo deu errado do nosso lado. Tente novamente.' : 'Não foi possível concluir a requisição.',
   })
 }
 

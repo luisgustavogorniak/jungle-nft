@@ -61,7 +61,8 @@ function RootLayout() {
       {/* Profile and wallets have no footer in the layout (D8/D9). */}
       {!pathname.startsWith('/profile') && <SiteFooter />}
       <MobileTabBar />
-      <Toaster />
+      {/* On the mobile detail the toast sits above the fixed buy bar, not over "Comprar NFT". */}
+      <Toaster mobileOffset={pathname.startsWith('/nfts/') ? { bottom: 'calc(11rem + env(safe-area-inset-bottom))' } : undefined} />
       <LiveAnnouncer />
     </>
   )

@@ -168,7 +168,7 @@ export function CatalogSection() {
                 variant="line"
                 // Chrome leaves a partly hidden focused tab clipped; bring it fully into view.
                 onFocus={(event) => event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' })}
-                className="max-w-full justify-start gap-3 overflow-x-auto overflow-y-hidden scroll-px-1.5 py-1 md:gap-5 [scrollbar-width:none] group-data-horizontal/tabs:h-auto"
+                className="max-w-full justify-start gap-2 overflow-x-auto overflow-y-hidden scroll-px-1.5 py-1 md:gap-5 [scrollbar-width:none] group-data-horizontal/tabs:h-auto"
               >
                 {catalogTabs.map((value) => (
                   <TabsTrigger key={value} value={value}>

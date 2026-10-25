@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { profileApi } from '@/api/auth'
 import { walletsApi } from '@/api/commerce'
-import type { Session, WalletInput, WalletSlot } from '@/api/contracts'
+import type { Session, User, WalletInput, WalletSlot } from '@/api/contracts'
 import { sessionQueryKey } from '@/features/auth/session'
 
 export function useProfile(userId: string) {
@@ -33,6 +33,13 @@ export function useSaveWallet(userId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ slot, input }: { slot: WalletSlot; input: WalletInput }) => walletsApi.save(slot, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['wallets', userId] }),
+    onSuccess: (wallet, { slot }) => {
+      // The primary wallet's nickname is also the profile's "Apelido da carteira". Written to the
+      // cache, not only invalidated: the profile form reads its values once, when it mounts.
+      if (slot === 'primary') {
+        queryClient.setQueryData<User>(['profile', userId], (user) => user && { ...user, walletNickname: wallet.nickname })
+      }
+      return queryClient.invalidateQueries({ queryKey: ['wallets', userId] })
+    },
   })
 }

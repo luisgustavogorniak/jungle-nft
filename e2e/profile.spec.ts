@@ -164,7 +164,22 @@ test.describe('wallets', () => {
     await expect(reloaded.getByLabel('Tipo de carteira')).toHaveValue('coinbase')
   })
 
-  test('an address that belongs to another account is refused by the API', async ({ page }) => {
+  test('the profile shows the nickname saved in Carteiras without a reload', async ({ page }) => {
+    await openAs(page, users.nova, '/profile')
+    await expect(page.getByLabel('Apelido da carteira')).toBeVisible()
+    const visible = (name: string) => page.locator(`a[href="${name}"]:visible`).first()
+
+    await visible('/profile/wallets').click()
+    const primary = page.getByRole('form', { name: 'Carteira principal' })
+    await primary.getByLabel('Apelido da carteira').fill('Cofre')
+    await primary.getByRole('button', { name: 'Salvar carteira' }).click()
+    await expect(page.getByText('Carteira salva')).toBeVisible()
+
+    await visible('/profile').click()
+    await expect(page.getByLabel('Apelido da carteira')).toHaveValue('Cofre')
+  })
+
+    test('an address that belongs to another account is refused by the API', async ({ page }) => {
     await openAs(page, users.nova, '/profile/wallets')
     const primary = page.getByRole('form', { name: 'Carteira principal' })
 

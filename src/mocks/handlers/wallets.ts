@@ -47,6 +47,8 @@ export const walletHandlers = [
       }
       if (existing) owned[owned.indexOf(existing)] = wallet
       else owned.push(wallet)
+      // The profile shows the nickname of the primary wallet as "Apelido da carteira".
+      if (slot === 'primary') user.walletNickname = wallet.nickname
       saveDb()
       return HttpResponse.json(wallet)
     }),
